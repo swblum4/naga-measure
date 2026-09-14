@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>מדידות</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2B3138">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F4F1; --grid:#D9DEE3; --ink:#23282D; --slate:#2B3138; --slate-2:#3B434C;
+    --dim:#14624F; --yellow:#E4B429; --muted:#8A929A; --purple:#7B4FA3; --red:#B0392E; --blue:#2A5C9A;
+    --ok:#2E7D4F; --warn:#B0392E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
+  body{font-family:"Heebo",system-ui,-apple-system,sans-serif;direction:rtl;background:var(--slate);color:var(--ink);
+    display:flex;flex-direction:column;touch-action:none;user-select:none}
+  button{font-family:inherit;font-size:14px;border:0;border-radius:8px;padding:9px 12px;background:var(--slate-2);
+    color:#EDEFF1;white-space:nowrap;cursor:pointer}
+  button:active{transform:translateY(1px)}
+  button:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+  button.on{background:var(--yellow);color:#221B00;font-weight:700}
+  button.go{background:var(--yellow);color:#221B00;font-weight:700}
+  button.ghost{background:#EEF0F2;color:var(--ink)}
+  button.danger{background:#FBEAE8;color:#A03127}
+  button.big{padding:16px 18px;font-size:16px;border-radius:12px;width:100%}
+  input,select,textarea{font-family:inherit;font-size:16px;width:100%;padding:11px 12px;border:1.5px solid #D3D8DD;
+    border-radius:9px;background:#FBFBFA;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--dim)}
+  label{font-size:12.5px;color:var(--muted);display:block;margin-bottom:4px}
+  .field{margin-bottom:12px}
+  .row{display:flex;gap:8px;align-items:center}
+  .row+.row{margin-top:10px}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+  .switchrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 4px;border-bottom:1px solid #EEE}
+  .switchrow span.lbl{font-size:14.5px}
+  .sw{position:relative;width:44px;height:26px;border-radius:14px;background:#D8DCE0;flex:0 0 auto;cursor:pointer}
+  .sw.on{background:var(--dim)}
+  .sw i{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .12s}
+  .sw.on i{transform:translateX(-18px)}
+
+  #screenStart,#screenNew,#screenSettings,#screenClose{
+    height:100%;overflow-y:auto;background:var(--paper);padding:18px 16px calc(24px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling:touch;
+  }
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .topbar h1{font-size:19px;margin:0;flex:1;letter-spacing:-.2px}
+  .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:14px}
+  .brandhead{color:#fff;text-align:center;padding:22px 10px 8px}
+  .brandhead h1{margin:0;font-size:24px}
+  .brandhead p{margin:4px 0 0;color:#B7BFC7;font-size:13px}
+  #screenStart{background:var(--slate)}
+  #screenStart .card{background:#EDEFF1}
+  .listitem{display:flex;align-items:center;gap:10px;padding:12px 8px;border-bottom:1px solid #EEE;cursor:pointer}
+  .listitem:last-child{border-bottom:0}
+  .listitem .meta{flex:1}
+  .listitem .meta b{display:block;font-size:15px}
+  .listitem .meta small{color:var(--muted);font-size:12px}
+  .empty{color:#B9C0C7;font-size:13.5px;padding:10px 4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .segbtns{display:flex;gap:8px;flex-wrap:wrap}
+  .segbtns button{flex:1;min-width:90px}
+
+  header.appbar{background:var(--slate);color:#EDEFF1;flex:0 0 auto;display:flex;gap:6px;align-items:center;
+    padding:8px 10px;overflow-x:auto;scrollbar-width:none;padding-top:max(8px,env(safe-area-inset-top))}
+  header.appbar::-webkit-scrollbar{display:none}
+  .brand{font-weight:700;font-size:14px;letter-spacing:-.2px;margin-inline-end:2px;white-space:nowrap}
+  .brand small{display:block;font-weight:400;font-size:10px;color:#98A2AC;margin-top:-2px}
+  #toolbar{background:var(--slate-2);color:#EDEFF1;flex:0 0 auto;display:flex;gap:6px;align-items:center;
+    padding:7px 10px;overflow-x:auto;scrollbar-width:none}
+  #toolbar::-webkit-scrollbar{display:none}
+  #toolbar button{padding:9px 12px;font-size:13.5px}
+  .swatch{width:30px;height:30px;border-radius:50%;border:2px solid #fff2;flex:0 0 auto;cursor:pointer}
+  .swatch.on{outline:2px solid var(--yellow);outline-offset:2px}
+
+  #stage{flex:1;position:relative;background:var(--paper);min-height:0}
+  canvas{display:block;width:100%;height:100%}
+  #toast{position:absolute;bottom:14px;inset-inline-start:50%;transform:translateX(50%);background:rgba(35,40,45,.94);
+    color:#fff;padding:9px 14px;border-radius:9px;font-size:13px;max-width:88%;text-align:center;opacity:0;
+    transition:opacity .18s;pointer-events:none;z-index:30}
+  #toast.show{opacity:1}
+
+  #checkbar{position:absolute;inset-inline:0;bottom:0;background:#2B3138ee;color:#fff;padding:10px 12px;
+    display:flex;align-items:center;gap:8px;transform:translateY(105%);transition:transform .18s ease-out;z-index:15}
+  #checkbar.open{transform:none}
+  #checkbar .msg{flex:1;font-size:13.5px;line-height:1.4}
+  #checkbar button{padding:8px 10px;font-size:12.5px}
+
+  .sheet{position:absolute;inset-inline:0;bottom:0;background:#fff;border-top:3px solid var(--yellow);
+    box-shadow:0 -10px 30px rgba(0,0,0,.18);padding:14px 16px calc(16px + env(safe-area-inset-bottom));
+    transform:translateY(105%);transition:transform .18s ease-out;max-height:80%;overflow-y:auto;z-index:20}
+  .sheet.open{transform:none}
+  .sheet .title{font-weight:700;font-size:16px;flex:1}
+  .sheet .title span{font-weight:400;color:var(--muted);font-size:13px}
+  .mic{background:var(--dim);color:#fff;align-self:flex-end;padding:11px 13px;font-size:16px;flex:0 0 auto}
+  .mic.live{background:#C0392B}
+
+  #checklistDrawer{position:absolute;right:0;top:0;bottom:0;width:min(320px,86%);background:#fff;
+    box-shadow:-6px 0 20px rgba(0,0,0,.18);transform:translateX(105%);transition:transform .18s ease-out;z-index:25;
+    display:flex;flex-direction:column}
+  #checklistDrawer.open{transform:none}
+  #checklistDrawer .head{padding:12px 14px;border-bottom:1px solid #EEE;display:flex;align-items:center;gap:8px}
+  #checklistDrawer .head b{flex:1;font-size:15px}
+  #checklistDrawer .body{flex:1;overflow-y:auto;padding:6px 10px}
+  .clitem{display:flex;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid #F2F2F2;font-size:13.5px}
+  .clitem .txt{flex:1}
+  .clitem .st{font-size:11px;padding:4px 8px;border-radius:8px;background:#EEE;color:#777;flex:0 0 auto}
+  .clitem .st.done{background:#DFF3E6;color:var(--ok)}
+  .clitem .st.return_later{background:#FDF2D9;color:#9A7100}
+  .clitem .st.not_relevant{background:#EEE;color:#999}
+
+  #stampPicker{position:absolute;bottom:64px;inset-inline-start:8px;background:#fff;border-radius:12px;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);padding:8px;display:none;grid-template-columns:repeat(3,1fr);gap:6px;
+    max-width:280px;z-index:22}
+  #stampPicker.open{display:grid}
+  #stampPicker button{font-size:12.5px;padding:9px 6px}
+
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- ===== מסך פתיחה ===== -->
+<div id="screenStart">
+  <div class="brandhead">
+    <h1>מדידות</h1>
+    <p>ציור חופשי או לפי רשימה, בכל מכשיר, בלי הרשמה</p>
+  </div>
+  <div class="card">
+    <button class="go big" id="bNew">מדידה חדשה</button>
+  </div>
+  <div class="card">
+    <div class="row" style="margin-bottom:6px"><b style="flex:1">להמשיך מדידה</b></div>
+    <div id="listContinue"></div>
+  </div>
+  <div class="card">
+    <div class="row" style="margin-bottom:6px"><b style="flex:1">השלמה על מדידה קיימת</b></div>
+    <div id="listCompletion"></div>
+  </div>
+  <div class="card">
+    <button class="ghost big" id="bSettings">ההגדרות שלי</button>
+  </div>
+</div>
+
+<!-- ===== מדידה חדשה ===== -->
+<div id="screenNew" hidden>
+  <div class="topbar"><button class="ghost" id="bNewBack">חזרה</button><h1>מדידה חדשה</h1></div>
+  <div class="card">
+    <div class="field"><label>לקוח</label><input id="nClient" placeholder="למשל: לוי"></div>
+    <div class="field"><label>שם החלל</label><input id="nSpace" placeholder="למשל: מטבח, ארון הורים"></div>
+    <div class="field"><label>סוג החלל</label>
+      <select id="nType"></select>
+    </div>
+    <div class="field"><label>מה בונים (לא חובה)</label><input id="nWhat" placeholder="למשל: ארון עליון ותחתון"></div>
+    <div class="field"><label>תאריך</label><input id="nDate" type="date"></div>
+    <button class="go big" id="bNewStart">התחלת מדידה</button>
+  </div>
+</div>
+
+<!-- ===== הגדרות שלי ===== -->
+<div id="screenSettings" hidden>
+  <div class="topbar"><button class="ghost" id="bSetBack">חזרה</button><h1>ההגדרות שלי</h1></div>
+  <div class="card">
+    <div class="row" style="margin-bottom:4px"><b>יחידות</b></div>
+    <div class="segbtns"><button data-u="cm" class="segU">ס״מ</button><button data-u="mm" class="segU">מ״מ</button></div>
+  </div>
+  <div class="card">
+    <b>כלים</b>
+    <div id="toolSettings"></div>
+  </div>
+  <div class="card">
+    <b>הצעת מידה אחרי קו</b>
+    <div class="switchrow"><span class="lbl">בציור חופשי</span><div class="sw" data-k="dimAfterLineFree"><i></i></div></div>
+    <div class="switchrow"><span class="lbl">בעבודה לפי רשימה</span><div class="sw" data-k="dimAfterLineStructured"><i></i></div></div>
+  </div>
+  <div class="card">
+    <b>הערות בזמן העבודה</b>
+    <div id="ruleSettings"></div>
+  </div>
+  <div class="card">
+    <button class="ghost big" id="bSetDone">סיום</button>
+  </div>
+</div>
+
+<!-- ===== מסך עבודה ===== -->
+<div id="screenMain" hidden style="height:100%;display:flex;flex-direction:column">
+  <header class="appbar">
+    <button id="bHome">⟵</button>
+    <div class="brand" id="hdrTitle">—<small id="hdrSub"></small></div>
+    <button id="bModeToggle" class="on">ציור חופשי</button>
+    <button id="bChecklist">רשימה</button>
+    <button id="bUndo">ביטול</button>
+    <button id="bClose2">סיים ושלח</button>
+  </header>
+  <div id="toolbar">
+    <button id="tInk" class="on">עט</button>
+    <span class="swatch" style="background:#23282D" data-c="#23282D"></span>
+    <span class="swatch" style="background:#B0392E" data-c="#B0392E"></span>
+    <span class="swatch" style="background:#2A5C9A" data-c="#2A5C9A"></span>
+    <button id="tWall">קו קיר</button>
+    <button id="tStamp">חותמת</button>
+    <button id="tHeight">H=</button>
+    <button id="bCam">מצלמה לקיר</button>
+    <input id="fileCam" type="file" accept="image/*" capture="environment" hidden>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="toast"></div>
+    <div id="stampPicker"></div>
+
+    <div id="checkbar">
+      <div class="msg" id="checkMsg"></div>
+      <button id="bCheckReturn">לחזור</button>
+      <button id="bCheckDismiss">לא רלוונטי</button>
+    </div>
+
+    <div class="sheet" id="sheetWall">
+      <div class="row"><div class="title">קיר <span id="wIdx"></span></div><button class="ghost" id="wClose">סגירה</button></div>
+      <div class="row">
+        <div class="field" style="flex:1;margin-bottom:0"><label id="wLenLbl">אורך</label><input id="wLen" inputmode="decimal" placeholder="למשל 240"></div>
+        <button class="mic" id="wMic">🎤</button>
+      </div>
+      <div class="field"><label>פירוט מקטעים (לא חובה, מופרד בפסיקים)</label><input id="wSegs" placeholder="למשל 120,80,40"></div>
+      <div class="field"><label>הערה</label><input id="wNote" placeholder="למשל קיר גבס"></div>
+      <div class="row">
+        <button id="wCrooked" class="ghost" style="flex:1">קיר עקום?</button>
+        <button id="wPhoto" class="ghost" style="flex:1">צילום לקיר</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="go" id="wSave" style="flex:1">שמירה</button>
+        <button class="ghost" id="wReturn">לא נמדד — לחזור</button>
+        <button class="danger" id="wDel">מחיקה</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheetStamp">
+      <div class="row"><div class="title" id="sTitle">חותמת</div><button class="ghost" id="sClose">סגירה</button></div>
+      <div class="row">
+        <div class="field" style="flex:1;margin-bottom:0"><label id="sCornerLbl">מרחק מפינה</label><input id="sCorner" inputmode="decimal"></div>
+        <button class="mic" id="sMic1">🎤</button>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1;margin-bottom:0"><label>גובה</label><input id="sHeight" inputmode="decimal"></div>
+        <button class="mic" id="sMic2">🎤</button>
+      </div>
+      <div id="sExtra"></div>
+      <div class="field"><label>הערה</label><input id="sNote" placeholder=""></div>
+      <div class="row" style="margin-top:12px">
+        <button class="go" id="sSave" style="flex:1">שמירה</button>
+        <button class="ghost" id="sReturn">לא נמדד — לחזור</button>
+        <button class="danger" id="sDel">מחיקה</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheetHeight">
+      <div class="row"><div class="title">H= גובה נקודתי</div><button class="ghost" id="hClose">סגירה</button></div>
+      <div class="field"><label>סוג</label>
+        <select id="hKind">
+          <option value="point">נקודתי</option>
+          <option value="ceiling">תקרה</option>
+          <option value="soffit">הנמכה</option>
+          <option value="beam_bottom">תחתית קורה</option>
+          <option value="floor_step">מפלס רצפה</option>
+          <option value="other">אחר</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1;margin-bottom:0"><label id="hValLbl">גובה</label><input id="hVal" inputmode="decimal"></div>
+        <button class="mic" id="hMic">🎤</button>
+      </div>
+      <div class="field" id="hFloorRefWrap" hidden><label>ביחס לרצפה</label>
+        <select id="hFloorRef"><option value="unknown">לא צוין</option><option value="finished">גמר</option><option value="before_tiles">לפני ריצוף</option></select>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="go" id="hSave" style="flex:1">שמירה</button>
+        <button class="ghost" id="hReturn">לא נמדד — לחזור</button>
+        <button class="danger" id="hDel">מחיקה</button>
+      </div>
+    </div>
+
+    <div id="checklistDrawer">
+      <div class="head"><b>רשימת בדיקה</b><button class="ghost" id="bClDrawerClose">סגירה</button></div>
+      <div class="body" id="checklistBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== סגירה ושליחה ===== -->
+<div id="screenClose" hidden>
+  <div class="topbar"><button class="ghost" id="bCloseBack">חזרה</button><h1>סיים ושלח</h1></div>
+  <div class="card">
+    <b>סיכום רשימת בדיקה</b>
+    <div id="closeChecklist"></div>
+  </div>
+  <div class="card">
+    <b>נשאר לחזור אליו</b>
+    <div id="closeReturns"></div>
+  </div>
+  <div class="card">
+    <button class="go big" id="bExportShare">שליחה בוואטסאפ / דרופבוקס</button>
+    <div class="hint">שולח שתי קבצים: תמונה (PNG) וקובץ נתונים (JSON).</div>
+  </div>
+  <div class="card" id="fallbackLinks" hidden>
+    <b>שמירה ידנית</b>
+    <div class="hint">המכשיר לא תומך בשיתוף קבצים ישיר. לחיצה ארוכה על הקישור שומרת אותו.</div>
+    <div class="row"><a id="lnkPng" class="go" style="display:block;text-align:center;flex:1;text-decoration:none;padding:11px" download>תמונה PNG</a></div>
+    <div class="row"><a id="lnkJson" class="go" style="display:block;text-align:center;flex:1;text-decoration:none;padding:11px" download>קובץ JSON</a></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   מדידות מיקי — app/index.html
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const todayStr = () => new Date().toISOString().slice(0,10);
+const uid = () => 'm'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- סוגי חלל ורשימות תיוג (מפרט §4) ---------- */
+const SPACE_TYPES = [
+  ['kitchen','מטבח / מטבחון / בר'],
+  ['wardrobe','ארון'],
+  ['walkin','חדר ארונות'],
+  ['cladding','חיפוי קיר'],
+  ['tv_wall','קיר טלוויזיה'],
+  ['bath_vanity','כיור / רחצה'],
+  ['technical','טכני / חשמל'],
+  ['headboard','גב מיטה'],
+  ['sliding_door','דלת הזזה'],
+  ['bar','בר'],
+  ['stairs','מדרגות'],
+  ['ceiling','תקרה'],
+  ['other','אחר'],
+];
+const COMMON_CHECKLIST = ['קירות + אורך','גובה תקרה (H=)','חלון/דלת + גובה ורוחב','שקעים ומתגים','גמר רצפה (לפני ריצוף?)','קיר עקום / פלס'];
+const EXTRA_CHECKLIST = {
+  kitchen:['מים','ניקוז','גז','מזגן','מקום מקרר','קורה או הנמכה'],
+  bar:['מים','ניקוז','גז','מזגן','מקום מקרר','קורה או הנמכה'],
+  wardrobe:['עומק זמין','הנמכת תקרה','פנל / סוקל','משקוף וכיוון פתיחה'],
+  walkin:['עומק זמין','הנמכת תקרה','פנל / סוקל','משקוף וכיוון פתיחה'],
+  cladding:['שקעים ומתגים עם גובה','נקודת טלוויזיה','קצה תקרה'],
+  tv_wall:['שקעים ומתגים עם גובה','נקודת טלוויזיה','קצה תקרה'],
+  bath_vanity:['מים + ניקוז עם גובה','מראה / תאורה','אריחים (לפני או אחרי חיפוי)'],
+  technical:['לוחות','צנרת','עומק','אוורור'],
+  headboard:['רוחב מיטה','שקעים ומתגים','חלון'],
+  sliding_door:['פתח אור רוחב × גובה','מפלס רצפה','תקרה'],
+};
+const STAMP_TYPES = [
+  ['outlet','שקע'],['switch','מתג'],['water','מים'],['drain','ניקוז'],['gas','גז'],
+  ['ac','מזגן'],['panel','לוח חשמל'],['beam','קורה'],['window','חלון'],['door','דלת'],
+];
+const STAMP_LABEL = Object.fromEntries(STAMP_TYPES);
+
+/* ---------- הגדרות ---------- */
+const DEFAULT_SETTINGS = {
+  units:'cm',
+  tool_pen:true, tool_lineSnap:true, tool_wallLetters:true, tool_stamps:true,
+  tool_height:true, tool_camera:true, tool_colorRoles:true, tool_dictation:true,
+  tool_palmRejection:true, tool_completion:true,
+  dimAfterLineFree:false, dimAfterLineStructured:true,
+  rule_R1:true, rule_R2:true, rule_R3:true, rule_R4:true, rule_R5:true,
+  rule_R6:true, rule_R7:true, rule_R8:true,
+  checklistOnClose:true,
+};
+let SET = loadSettings();
+function loadSettings(){
+  try{ const s = JSON.parse(localStorage.getItem('miki_measure_settings')||'{}'); return {...DEFAULT_SETTINGS, ...s}; }
+  catch(e){ return {...DEFAULT_SETTINGS}; }
+}
+function saveSettings(){ localStorage.setItem('miki_measure_settings', JSON.stringify(SET)); }
+
+const TOOL_LABELS = [
+  ['tool_pen','עט חופשי'],['tool_lineSnap','יישור קו לאנכי/אופקי'],['tool_wallLetters','אותיות קיר אוטומטיות'],
+  ['tool_stamps','חותמות אלמנטים'],['tool_height','כלי H= (גובה נקודתי)'],['tool_camera','מצלמה לקיר'],
+  ['tool_colorRoles','צבעי עט'],['tool_dictation','הכתבה (מיקרופון)'],['tool_palmRejection','דחיית כף יד (עט/אצבע)'],
+  ['tool_completion','השלמה (סבב 2)'],
+];
+const RULE_LABELS = [
+  ['rule_R1','R1 · קיר בלי מידה'],['rule_R2','R2 · אין אף גובה בדף'],['rule_R3','R3 · חדר לא סגור'],
+  ['rule_R4','R4 · קיר בלי תמונה'],['rule_R5','R5 · בלי שקעים/מים/מיזוג'],['rule_R6','R6 · סכום מקטעים לא תואם'],
+  ['rule_R7','R7 · ערך חשוד'],['rule_R8','R8 · פריט מסומן לחזור'],
+];
+
+/* ---------- IndexedDB ---------- */
+let DB=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open('miki-measure', 1);
+    r.onupgradeneeded = ()=>{
+      const db = r.result;
+      if(!db.objectStoreNames.contains('docs')) db.createObjectStore('docs',{keyPath:'id'});
+      if(!db.objectStoreNames.contains('photos')) db.createObjectStore('photos',{keyPath:'id'});
+    };
+    r.onsuccess = ()=>{ DB=r.result; res(DB); };
+    r.onerror = ()=> rej(r.error);
+  });
+}
+function idbPut(store, val){ return new Promise((res,rej)=>{ const tx=DB.transaction(store,'readwrite'); tx.objectStore(store).put(val); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+function idbGet(store, key){ return new Promise((res,rej)=>{ const tx=DB.transaction(store,'readonly'); const rq=tx.objectStore(store).get(key); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error); }); }
+function idbAll(store){ return new Promise((res,rej)=>{ const tx=DB.transaction(store,'readonly'); const rq=tx.objectStore(store).getAll(); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error); }); }
+function idbDel(store, key){ return new Promise((res,rej)=>{ const tx=DB.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+
+/* ---------- מסמך נוכחי (state) ---------- */
+let DOC = null;      // {id, updatedAt, data:{...schema}}
+let activeRound = 1;
+let dirty = false;
+
+function newDoc(header){
+  const id = uid();
+  return {
+    id, updatedAt: Date.now(),
+    data:{
+      version:'0.1', header, mode:'free', units:SET.units, scale_cm_per_px:null,
+      settings_snapshot:{...SET},
+      nodes:[], walls:[], heights:[], elements:[], ink:[], notes:[], photos:[],
+      checks:[], checklist: buildChecklist(header.space_type),
+      rounds:[{n:1,date:header.date,label:'מדידה'}], office_read:null,
+    }
+  };
+}
+function buildChecklist(spaceType){
+  const items = [...COMMON_CHECKLIST, ...(EXTRA_CHECKLIST[spaceType]||[])];
+  return items.map(item=>({item, state:'open'}));
+}
+
+function scheduleSave(){
+  dirty = true;
+  clearTimeout(scheduleSave._t);
+  scheduleSave._t = setTimeout(flushSave, 500);
+}
+function flushSave(){
+  if(!dirty || !DOC) return;
+  DOC.updatedAt = Date.now();
+  idbPut('docs', DOC).then(()=>{ dirty=false; });
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') flushSave(); });
+window.addEventListener('pagehide', flushSave);
+
+/* ---------- ניווט מסכים ---------- */
+function showScreen(id){
+  for(const s of ['screenStart','screenNew','screenSettings','screenMain','screenClose']) $(s).hidden = (s!==id);
+  if(id==='screenMain') setTimeout(resize,30);
+}
+
+/* ================= מסך פתיחה ================= */
+async function refreshStartLists(){
+  const all = (await idbAll('docs')).sort((a,b)=>b.updatedAt-a.updatedAt);
+  const cont = $('listContinue'), comp = $('listCompletion');
+  cont.innerHTML=''; comp.innerHTML='';
+  if(!all.length){ cont.innerHTML = '<div class="empty">אין עדיין מדידות שמורות</div>'; comp.innerHTML = '<div class="empty">—</div>'; return; }
+  for(const d of all){
+    const h = d.data.header;
+    const row = document.createElement('div'); row.className='listitem';
+    row.innerHTML = `<div class="meta"><b>${esc(h.client)} · ${esc(h.space)}</b><small>${h.date} · סבב ${d.data.rounds.length}</small></div>`;
+    row.onclick = ()=>{ DOC = d; activeRound = d.data.rounds.length; openMain(); };
+    cont.appendChild(row);
+
+    const row2 = row.cloneNode(true);
+    row2.onclick = ()=> startCompletion(d);
+    comp.appendChild(row2);
+  }
+}
+function esc(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function startCompletion(d){
+  const n = d.data.rounds.length+1;
+  d.data.rounds.push({n, date:todayStr(), label:'השלמה'});
+  DOC = d; activeRound = n;
+  scheduleSave(); openMain();
+  toast('סבב השלמה חדש. מה שנוסף עכשיו יסומן בסגול.');
+}
+
+$('bNew').onclick = ()=>{
+  $('nDate').value = todayStr();
+  showScreen('screenNew');
+};
+$('bNewBack').onclick = ()=> showScreen('screenStart');
+$('bSettings').onclick = ()=>{ renderSettings(); showScreen('screenSettings'); };
+
+for(const [v,l] of SPACE_TYPES){ const o=document.createElement('option'); o.value=v; o.textContent=l; $('nType').appendChild(o); }
+
+$('bNewStart').onclick = ()=>{
+  const client = $('nClient').value.trim() || 'לקוח';
+  const space = $('nSpace').value.trim() || 'חלל';
+  const space_type = $('nType').value;
+  const what_we_build = $('nWhat').value.trim();
+  const date = $('nDate').value || todayStr();
+  const device = (navigator.userAgent.match(/SM-\w+|iPhone|iPad|Android/)||['מכשיר'])[0];
+  DOC = newDoc({client, space, space_type, what_we_build, date, device});
+  activeRound = 1;
+  idbPut('docs', DOC).then(()=>{ openMain(); toast('מדידה חדשה נפתחה'); });
+};
+
+/* ================= הגדרות ================= */
+function renderSettings(){
+  $('toolSettings').querySelectorAll('.switchrow').forEach(e=>e.remove());
+  const box = $('toolSettings');
+  for(const [k,l] of TOOL_LABELS){
+    const row = document.createElement('div'); row.className='switchrow';
+    row.innerHTML = `<span class="lbl">${l}</span><div class="sw ${SET[k]?'on':''}" data-k="${k}"><i></i></div>`;
+    box.appendChild(row);
+  }
+  const rbox = $('ruleSettings');
+  rbox.querySelectorAll('.switchrow').forEach(e=>e.remove());
+  for(const [k,l] of RULE_LABELS){
+    const row = document.createElement('div'); row.className='switchrow';
+    row.innerHTML = `<span class="lbl">${l}</span><div class="sw ${SET[k]?'on':''}" data-k="${k}"><i></i></div>`;
+    rbox.appendChild(row);
+  }
+  document.querySelectorAll('#screenSettings .sw').forEach(sw=>{
+    const k = sw.dataset.k;
+    if(k==='dimAfterLineFree'||k==='dimAfterLineStructured') sw.classList.toggle('on', !!SET[k]);
+    sw.onclick = ()=>{
+      SET[k] = !SET[k]; sw.classList.toggle('on', SET[k]); saveSettings();
+      applyToolVisibility(); toast('נשמר');
+    };
+  });
+  document.querySelectorAll('.segU').forEach(b=>{
+    b.classList.toggle('on', SET.units===b.dataset.u);
+    b.onclick = ()=>{ SET.units=b.dataset.u; saveSettings(); renderSettings(); if(DOC){DOC.data.units=SET.units; scheduleSave();} };
+  });
+}
+$('bSetBack').onclick = ()=> showScreen(DOC?'screenMain':'screenStart');
+$('bSetDone').onclick = ()=> showScreen(DOC?'screenMain':'screenStart');
+
+function applyToolVisibility(){
+  $('tInk').closest('#toolbar') && ($('tInk').style.display = SET.tool_pen?'':'none');
+  $('tWall').style.display = SET.tool_lineSnap?'':'none';
+  $('tStamp').style.display = SET.tool_stamps?'':'none';
+  $('tHeight').style.display = SET.tool_height?'':'none';
+  $('bCam').style.display = SET.tool_camera?'':'none';
+  document.querySelectorAll('#toolbar .swatch').forEach(s=> s.style.display = SET.tool_colorRoles?'':'none');
+}
+
+/* ================= מסך עבודה: מצב וכלים ================= */
+let tool = 'ink';           // ink | wall | stamp | height
+let stampType = 'outlet';
+let inkColor = '#23282D';
+
+function openMain(){
+  applyToolVisibility();
+  $('bModeToggle').textContent = DOC.data.mode==='structured' ? 'לפי רשימה' : 'ציור חופשי';
+  $('bModeToggle').classList.toggle('on', DOC.data.mode!=='structured');
+  $('hdrTitle').innerHTML = esc(DOC.data.header.client)+' · '+esc(DOC.data.header.space)+'<small>'+DOC.data.header.date+' · סבב '+activeRound+'</small>';
+  showScreen('screenMain');
+  renderChecklistDrawer();
+  setTool('ink');
+  fit();
+  draw();
+  runChecksSoon();
+}
+$('bHome').onclick = ()=>{ flushSave(); refreshStartLists(); showScreen('screenStart'); };
+$('bModeToggle').onclick = ()=>{
+  DOC.data.mode = (DOC.data.mode==='structured') ? 'free' : 'structured';
+  $('bModeToggle').textContent = DOC.data.mode==='structured' ? 'לפי רשימה' : 'ציור חופשי';
+  $('bModeToggle').classList.toggle('on', DOC.data.mode!=='structured');
+  if(DOC.data.mode==='structured') openChecklist();
+  scheduleSave();
+};
+$('bChecklist').onclick = openChecklist;
+$('bClDrawerClose').onclick = ()=> $('checklistDrawer').classList.remove('open');
+function openChecklist(){ renderChecklistDrawer(); $('checklistDrawer').classList.add('open'); }
+function renderChecklistDrawer(){
+  const body = $('checklistBody'); body.innerHTML='';
+  const order = ['open','return_later','done','not_relevant'];
+  DOC.data.checklist.forEach((it,i)=>{
+    const row = document.createElement('div'); row.className='clitem';
+    row.innerHTML = `<span class="txt">${esc(it.item)}</span><span class="st ${it.state}">${stLabel(it.state)}</span>`;
+    row.onclick = ()=>{
+      const idx = order.indexOf(it.state);
+      it.state = order[(idx+1)%order.length];
+      scheduleSave(); renderChecklistDrawer();
+    };
+    body.appendChild(row);
+  });
+}
+function stLabel(s){ return {open:'פתוח',done:'בוצע',return_later:'לחזור',not_relevant:'לא רלוונטי'}[s]||s; }
+
+/* ---------- כלים ---------- */
+function setTool(t){
+  tool = t;
+  $('tInk').classList.toggle('on', t==='ink');
+  $('tWall').classList.toggle('on', t==='wall');
+  $('tStamp').classList.toggle('on', t==='stamp');
+  $('tHeight').classList.toggle('on', t==='height');
+  $('stampPicker').classList.remove('open');
+}
+$('tInk').onclick = ()=> setTool('ink');
+$('tWall').onclick = ()=> setTool('wall');
+$('tHeight').onclick = ()=> setTool('height');
+$('tStamp').onclick = ()=>{
+  const sp = $('stampPicker');
+  if(sp.classList.contains('open')){ sp.classList.remove('open'); return; }
+  sp.innerHTML='';
+  for(const [v,l] of STAMP_TYPES){
+    const b = document.createElement('button'); b.textContent=l;
+    b.onclick = ()=>{ stampType=v; setTool('stamp'); sp.classList.remove('open'); toast('הקש על המקום ב'+l); };
+    sp.appendChild(b);
+  }
+  sp.classList.add('open');
+};
+document.querySelectorAll('#toolbar .swatch').forEach(s=>{
+  s.onclick = ()=>{ inkColor = s.dataset.c; document.querySelectorAll('#toolbar .swatch').forEach(x=>x.classList.remove('on')); s.classList.add('on'); };
+});
+document.querySelector('#toolbar .swatch').classList.add('on');
+
+/* ---------- מצלמה לקיר ---------- */
+let camWallId = null;
+$('bCam').onclick = ()=>{
+  toast('הקש על קיר, ואז צלם');
+  const prevTool = tool; setTool('wall'); // הבא: הקשה תבחר קיר קיים
+  pendingCamPick = true;
+};
+let pendingCamPick = false;
+function pickWallForPhoto(wallId){
+  pendingCamPick = false;
+  camWallId = wallId;
+  $('fileCam').click();
+}
+$('fileCam').onchange = e=>{
+  const f = e.target.files && e.target.files[0]; if(!f || !camWallId) return;
+  downscaleToDataURL(f, 1280).then(durl=>{
+    const pid = uid();
+    idbPut('photos', {id:pid, data:durl});
+    const w = DOC.data.walls.find(w=>w.id===camWallId);
+    const fname = (DOC.data.header.client+'_'+DOC.data.header.space+'_wall'+camWallId+'.jpg').replace(/\s+/g,'_');
+    w.photos.push(pid);
+    DOC.data.photos.push({file:fname, wall:camWallId, taken:new Date().toISOString(), _photoId:pid});
+    scheduleSave(); draw(); toast('התמונה נשמרה לקיר '+camWallId);
+  });
+  e.target.value='';
+};
+function downscaleToDataURL(file, maxSide){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const k = Math.min(1, maxSide/Math.max(img.width,img.height));
+      const c = document.createElement('canvas'); c.width=img.width*k; c.height=img.height*k;
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL('image/jpeg',0.72));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* =========================================================
+   קנבס: נקודות, קירות, דיו, חותמות, גבהים
+   ========================================================= */
+const cv = $('cv'); const ctx = cv.getContext('2d');
+let view = {ox:0, oy:0, s:1};
+let history = [];
+function pushHistory(){
+  const d = DOC.data;
+  history.push(JSON.stringify({nodes:d.nodes,walls:d.walls,heights:d.heights,elements:d.elements,ink:d.ink}));
+  if(history.length>40) history.shift();
+}
+$('bUndo').onclick = ()=>{
+  const h = history.pop(); if(!h){ toast('אין מה לבטל'); return; }
+  const o = JSON.parse(h); Object.assign(DOC.data, o); scheduleSave(); draw(); runChecksSoon();
+};
+
+function resize(){
+  const r = cv.getBoundingClientRect(); if(!r.width) return;
+  const dpr = Math.min(devicePixelRatio||1, 2.5);
+  cv.width = r.width*dpr; cv.height = r.height*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  draw();
+}
+addEventListener('resize', resize);
+
+function toast(t){
+  const el=$('toast'); el.textContent=t; el.classList.add('show');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+function nextNodeId(){ const d=DOC.data.nodes; return d.length? Math.max(...d.map(n=>n.id))+1 : 1; }
+function nodePos(id){ const n = DOC.data.nodes.find(n=>n.id===id); return n ? {x:n.x,y:n.y} : {x:0,y:0}; }
+function nextWallLetter(){
+  const used = DOC.data.walls.map(w=>w.id);
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for(const c of letters) if(!used.includes(c)) return c;
+  return 'W'+(DOC.data.walls.length+1);
+}
+function roundColor(){ return activeRound>1 ? '#7B4FA3' : inkColor; }
+
+function toWorld(px,py){ return {x:(px-view.ox)/view.s, y:(py-view.oy)/view.s}; }
+
+/* ---------- ציור ---------- */
+function drawScene(c, v, w, h, opts={}){
+  c.save();
+  c.fillStyle = opts.bg || '#F5F4F1';
+  c.fillRect(0,0,w,h);
+  c.translate(v.ox, v.oy); c.scale(v.s, v.s);
+
+  if(opts.grid !== false){
+    const step=25, sp=step*v.s;
+    if(sp>9){
+      const x0=Math.floor((-v.ox/v.s)/step)*step, y0=Math.floor((-v.oy/v.s)/step)*step;
+      const x1=x0+w/v.s+step, y1=y0+h/v.s+step;
+      c.fillStyle='#D9DEE3'; const r=1/v.s;
+      for(let x=x0;x<x1;x+=step) for(let y=y0;y<y1;y+=step){ c.beginPath(); c.arc(x,y,r,0,6.2832); c.fill(); }
+    }
+  }
+
+  // דיו חופשי
+  c.lineCap='round'; c.lineJoin='round';
+  for(const s of DOC.data.ink){
+    if(!s.points || s.points.length<2) continue;
+    c.strokeStyle = s.color || '#23282D'; c.lineWidth = 2.6/v.s;
+    c.beginPath(); c.moveTo(s.points[0][0], s.points[0][1]);
+    for(const p of s.points.slice(1)) c.lineTo(p[0],p[1]);
+    c.stroke();
+  }
+
+  // קירות
+  c.strokeStyle = '#23282D'; c.lineWidth = 3/v.s;
+  for(const wl of DOC.data.walls){
+    const a = nodePos(wl.from), b = nodePos(wl.to);
+    c.strokeStyle = wl._round>1 ? '#7B4FA3' : '#23282D';
+    c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke();
+    wallLabel(c, v, wl, a, b);
+  }
+  // צמתים
+  c.fillStyle='#23282D';
+  for(const n of DOC.data.nodes){
+    if(!DOC.data.walls.some(w=>w.from===n.id||w.to===n.id)) continue;
+    c.beginPath(); c.arc(n.x,n.y,3.2/v.s,0,6.2832); c.fill();
+  }
+
+  // חותמות
+  for(const el of DOC.data.elements) elementMark(c, v, el);
+  // גבהים
+  for(const hh of DOC.data.heights) heightMark(c, v, hh);
+
+  c.restore();
+}
+function fmtNum(cm){ if(cm==null) return ''; return (Math.round(cm*10)/10).toString(); }
+function wallLabel(c, v, wl, a, b){
+  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  const d=Math.hypot(b.x-a.x,b.y-a.y)||1;
+  let nx=-(b.y-a.y)/d, ny=(b.x-a.x)/d; if(ny>0){nx=-nx;ny=-ny;}
+  const off=18/v.s, cx=mx+nx*off, cy=my+ny*off;
+  const hasLen = wl.length && wl.length.cm!=null;
+  const txt = (wl.id||'') + (hasLen ? '  '+fmtNum(wl.length.cm) : '');
+  c.save(); c.translate(cx,cy); c.scale(1/v.s,1/v.s);
+  c.font = '700 14px Heebo, system-ui, sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+  const tw = c.measureText(txt).width;
+  c.fillStyle='rgba(245,244,241,.92)';
+  roundRect(c,-tw/2-8,-12,tw+16,24,7); c.fill();
+  c.fillStyle = hasLen ? '#14624F' : '#9AA2AA';
+  c.fillText(txt,0,0);
+  c.restore();
+  // אמצע הקיר, לצורך בדיקת R1 (דיו קרוב לרצועת אמצע)
+  wl._mid = {x:mx,y:my};
+}
+function elementMark(c, v, el){
+  if(!el.at) return;
+  const [x,y]=el.at;
+  c.save(); c.translate(x,y);
+  c.fillStyle = el._round>1 ? '#7B4FA3' : '#E4B429';
+  c.beginPath(); c.arc(0,0,10/v.s,0,6.2832); c.fill();
+  c.strokeStyle='#23282D'; c.lineWidth=1.4/v.s; c.stroke();
+  c.scale(1/v.s,1/v.s);
+  c.font='700 10px Heebo, system-ui, sans-serif'; c.fillStyle='#23282D'; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText((STAMP_LABEL[el.type]||el.type).slice(0,1), 0, 0);
+  c.font='400 11px Heebo, system-ui, sans-serif';
+  c.fillStyle='rgba(255,255,255,.9)';
+  const lbl = STAMP_LABEL[el.type]||el.type;
+  const w = c.measureText(lbl).width;
+  roundRect(c,-w/2-5,12,w+10,16,5); c.fill();
+  c.fillStyle='#23282D'; c.fillText(lbl,0,20);
+  c.restore();
+}
+function heightMark(c, v, hh){
+  if(!hh.at) return;
+  const [x,y]=hh.at;
+  c.save(); c.translate(x,y);
+  c.fillStyle = hh._round>1 ? '#7B4FA3' : '#2A5C9A';
+  c.beginPath(); c.moveTo(0,-9/v.s); c.lineTo(9/v.s,7/v.s); c.lineTo(-9/v.s,7/v.s); c.closePath(); c.fill();
+  c.scale(1/v.s,1/v.s);
+  const txt = 'H='+(hh.value&&hh.value.cm!=null ? fmtNum(hh.value.cm) : '?');
+  c.font='700 11px Heebo, system-ui, sans-serif'; c.fillStyle='rgba(255,255,255,.92)';
+  const w = c.measureText(txt).width;
+  roundRect(c,-w/2-5,10,w+10,16,5); c.fill();
+  c.fillStyle='#2A5C9A'; c.textAlign='center'; c.fillText(txt,0,22);
+  c.restore();
+}
+function roundRect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+
+let preview=null, previewStroke=null;
+function draw(){
+  const r = cv.getBoundingClientRect();
+  drawScene(ctx, view, r.width, r.height);
+  ctx.save(); ctx.translate(view.ox,view.oy); ctx.scale(view.s,view.s);
+  if(preview){
+    ctx.strokeStyle='#E4B429'; ctx.lineWidth=2.6/view.s; ctx.setLineDash([6/view.s,5/view.s]);
+    ctx.beginPath(); ctx.moveTo(preview.a.x,preview.a.y); ctx.lineTo(preview.b.x,preview.b.y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if(previewStroke && previewStroke.length>1){
+    ctx.strokeStyle = roundColor(); ctx.lineWidth=2.6/view.s; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(previewStroke[0][0],previewStroke[0][1]);
+    for(const p of previewStroke.slice(1)) ctx.lineTo(p[0],p[1]);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---------- קלט מגע ---------- */
+const act = new Map();
+let start=null, moved=0, pinch=null, penSeen=false, panOne=null, drawingInk=false;
+
+cv.addEventListener('pointerdown', e=>{
+  cv.setPointerCapture(e.pointerId);
+  act.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const rect=cv.getBoundingClientRect();
+  if(act.size===1){
+    if(e.pointerType==='pen') penSeen = true;
+    if(SET.tool_palmRejection && penSeen && e.pointerType!=='pen'){
+      panOne = {x:e.clientX,y:e.clientY, ox:view.ox, oy:view.oy}; start=null; preview=null; return;
+    }
+    const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
+    if(tool==='ink'){
+      drawingInk = true; previewStroke = [[w.x,w.y]]; moved=0; start=w;
+    } else if(tool==='wall'){
+      start = w; moved=0; preview={a:{...w}, b:{...w}};
+    } else {
+      start = w; moved=0; // stamp/height: tap only
+    }
+  } else {
+    preview=null; start=null; drawingInk=false; previewStroke=null;
+    const p=[...act.values()];
+    pinch={d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y), mx:(p[0].x+p[1].x)/2, my:(p[0].y+p[1].y)/2, s:view.s, ox:view.ox, oy:view.oy};
+  }
+});
+cv.addEventListener('pointermove', e=>{
+  if(!act.has(e.pointerId)) return;
+  act.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const rect=cv.getBoundingClientRect();
+  if(panOne && act.size===1){
+    view.ox = panOne.ox+(e.clientX-panOne.x); view.oy = panOne.oy+(e.clientY-panOne.y); draw(); return;
+  }
+  if(act.size>=2 && pinch){
+    const p=[...act.values()]; const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    const mx=(p[0].x+p[1].x)/2, my=(p[0].y+p[1].y)/2;
+    const k=Math.max(.2,Math.min(6, pinch.s*(d/pinch.d)))/pinch.s;
+    view.s = pinch.s*k;
+    view.ox = mx-rect.left-(pinch.mx-rect.left-pinch.ox)*k;
+    view.oy = my-rect.top-(pinch.my-rect.top-pinch.oy)*k;
+    draw(); return;
+  }
+  if(drawingInk && start){
+    const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
+    previewStroke.push([w.x,w.y]); moved = Math.hypot(w.x-start.x,w.y-start.y)*view.s;
+    draw(); return;
+  }
+  if(tool==='wall' && start){
+    const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
+    moved = Math.hypot(w.x-start.x,w.y-start.y)*view.s;
+    preview = {a:{...start}, b:snapEnd(start,w)};
+    draw();
+  }
+});
+function endPtr(e){
+  const had = act.has(e.pointerId); act.delete(e.pointerId);
+  if(panOne){ if(act.size===0) panOne=null; return; }
+  if(act.size===0) pinch=null;
+  if(!had) return;
+  const rect=cv.getBoundingClientRect();
+  const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
+  if(drawingInk){
+    drawingInk=false;
+    if(previewStroke && previewStroke.length>2 && moved>6){
+      pushHistory();
+      DOC.data.ink.push({color: roundColor(), tool:'pen', points: previewStroke.map(p=>[Math.round(p[0]*10)/10,Math.round(p[1]*10)/10]), near_wall:null, _round:activeRound});
+      scheduleSave(); runChecksSoon();
+    } else if(previewStroke && previewStroke.length){
+      hitTest(w);
+    }
+    previewStroke=null; start=null; draw(); return;
+  }
+  if(tool==='wall'){
+    preview=null;
+    if(start){
+      if(moved>14) addWall(start, w); else hitTest(w);
+    }
+    start=null; draw(); return;
+  }
+  if(tool==='stamp' || tool==='height'){
+    if(start && moved<14){
+      if(pendingCamPick){ const hit = nearestWallToPoint(w); if(hit) pickWallForPhoto(hit.id); else toast('אין קיר קרוב'); }
+      else if(tool==='stamp') placeStamp(w);
+      else placeHeight(w);
+    }
+    start=null; draw(); return;
+  }
+  start=null;
+}
+cv.addEventListener('pointerup', endPtr);
+cv.addEventListener('pointercancel', e=>{ act.delete(e.pointerId); start=null; preview=null; previewStroke=null; drawingInk=false; draw(); });
+
+/* ---------- הצמדות קווי קיר ---------- */
+function nearNode(w){
+  const tol=22/view.s; let best=null, bd=tol;
+  for(const n of DOC.data.nodes){ const d=Math.hypot(n.x-w.x,n.y-w.y); if(d<bd){bd=d;best=n;} }
+  return best;
+}
+function snapEnd(a,w){
+  let pos={...w};
+  if(SET.tool_lineSnap){ if(Math.abs(pos.x-a.x)>=Math.abs(pos.y-a.y)) pos.y=a.y; else pos.x=a.x; }
+  const hit = nearNode(pos);
+  if(hit) return {x:hit.x,y:hit.y};
+  return pos;
+}
+function getOrAddNode(w){
+  const hit = nearNode(w); if(hit) return hit.id;
+  const id = nextNodeId(); DOC.data.nodes.push({id,x:Math.round(w.x*10)/10,y:Math.round(w.y*10)/10}); return id;
+}
+function addWall(a,bRaw){
+  pushHistory();
+  const ai = getOrAddNode(a);
+  const snapped = snapEnd(nodePos(ai), bRaw);
+  const bi = getOrAddNode(snapped);
+  if(ai===bi){ history.pop(); return; }
+  const letter = SET.tool_wallLetters ? nextWallLetter() : ('#'+(DOC.data.walls.length+1));
+  const wl = {id:letter, from:ai, to:bi, length:null, condition:'unknown', photos:[], _round:activeRound};
+  DOC.data.walls.push(wl);
+  scheduleSave(); runChecksSoon();
+  const openDim = DOC.data.mode==='structured' ? SET.dimAfterLineStructured : SET.dimAfterLineFree;
+  if(openDim) openWallSheet(wl.id);
+}
+function nearestWallToPoint(w){
+  let best=null, bd=1e9;
+  for(const wl of DOC.data.walls){
+    const a=nodePos(wl.from), b=nodePos(wl.to);
+    const dx=b.x-a.x, dy=b.y-a.y, L=dx*dx+dy*dy||1;
+    let t=((w.x-a.x)*dx+(w.y-a.y)*dy)/L; t=Math.max(0,Math.min(1,t));
+    const d=Math.hypot(w.x-(a.x+dx*t), w.y-(a.y+dy*t));
+    if(d<bd){bd=d;best=wl;}
+  }
+  return bd<(60/view.s) ? best : null;
+}
+
+/* ---------- בחירה (הקשה) ---------- */
+function hitTest(w){
+  // חותמות
+  for(const el of DOC.data.elements){ if(el.at && Math.hypot(el.at[0]-w.x, el.at[1]-w.y) < 16/view.s) return openStampSheet(el._id); }
+  // גבהים
+  for(const hh of DOC.data.heights){ if(hh.at && Math.hypot(hh.at[0]-w.x, hh.at[1]-w.y) < 16/view.s) return openHeightSheet(hh._id); }
+  // קירות
+  const tol=18/view.s; let best=null,bd=tol;
+  for(const wl of DOC.data.walls){
+    const a=nodePos(wl.from), b=nodePos(wl.to);
+    const dx=b.x-a.x, dy=b.y-a.y, L=dx*dx+dy*dy||1;
+    let t=((w.x-a.x)*dx+(w.y-a.y)*dy)/L; t=Math.max(0,Math.min(1,t));
+    const d=Math.hypot(w.x-(a.x+dx*t), w.y-(a.y+dy*t));
+    if(d<bd){bd=d;best=wl;}
+  }
+  if(best) openWallSheet(best.id);
+}
+
+/* ---------- חלונית קיר ---------- */
+let curWall=null;
+function openWallSheet(id){
+  curWall = DOC.data.walls.find(w=>w.id===id); if(!curWall) return;
+  $('wIdx').textContent = curWall.id;
+  $('wLenLbl').textContent = 'אורך (' + (SET.units==='mm'?'מ״מ':'ס״מ') + ')';
+  const cm = curWall.length ? curWall.length.cm : null;
+  $('wLen').value = cm!=null ? (SET.units==='mm'? cm*10 : cm) : '';
+  $('wSegs').value = curWall.segments ? curWall.segments.map(s=>s.cm).join(',') : '';
+  $('wNote').value = curWall.note || '';
+  $('sheetWall').classList.add('open');
+}
+$('wClose').onclick = ()=> $('sheetWall').classList.remove('open');
+$('wSave').onclick = ()=>{
+  if(!curWall) return;
+  pushHistory();
+  const raw = ($('wLen').value||'').trim();
+  const v = parseFloat(raw.replace(/[^\d.]/g,''));
+  const cm = isFinite(v) ? (SET.units==='mm'? v/10 : v) : null;
+  curWall.length = cm!=null ? {cm, status:'measured', source:'typed', confidence:null, raw, round:activeRound} : null;
+  const segs = ($('wSegs').value||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>({cm:parseFloat(s), status:'measured', source:'typed'}));
+  curWall.segments = segs.length ? segs : undefined;
+  curWall.note = $('wNote').value.trim();
+  DOC.data.notes = DOC.data.notes.filter(n=>n.wall!==curWall.id);
+  if(curWall.note) DOC.data.notes.push({text:curWall.note, wall:curWall.id, source:'typed'});
+  $('sheetWall').classList.remove('open');
+  scheduleSave(); draw(); runChecksSoon();
+};
+$('wDel').onclick = ()=>{
+  if(!curWall) return;
+  pushHistory();
+  DOC.data.walls = DOC.data.walls.filter(w=>w!==curWall);
+  $('sheetWall').classList.remove('open'); scheduleSave(); draw(); runChecksSoon();
+};
+$('wReturn').onclick = ()=>{
+  if(!curWall) return;
+  curWall.length = {cm:null, status:'not_measured_return', source:'typed', round:activeRound};
+  $('sheetWall').classList.remove('open'); scheduleSave(); draw(); runChecksSoon();
+  toast('סומן לחזרה');
+};
+$('wCrooked').onclick = ()=>{ if(!curWall) return; curWall.condition = curWall.condition==='crooked' ? 'unknown' : 'crooked'; toast(curWall.condition==='crooked'?'סומן כקיר עקום':'בוטל'); };
+$('wPhoto').onclick = ()=>{ if(!curWall) return; pickWallForPhoto(curWall.id); };
+$('wMic').onclick = ()=> dictateInto('wLen', 'wNote');
+
+/* ---------- חותמת אלמנט ---------- */
+let curEl=null;
+function placeStamp(w){
+  pushHistory();
+  const nearWall = nearestWallToPoint(w);
+  const el = {_id:uid(), type:stampType, wall: nearWall?nearWall.id:null, at:[Math.round(w.x*10)/10,Math.round(w.y*10)/10],
+    from_corner:null, height:null, width:null, opening_height:null, swing: (stampType==='door')?'unknown':undefined, note:'', _round:activeRound};
+  if(nearWall){
+    const a = nodePos(nearWall.from);
+    el.from_corner = {cm: Math.round(Math.hypot(w.x-a.x,w.y-a.y)*10)/10, status:'derived', source:'computed', round:activeRound};
+  }
+  DOC.data.elements.push(el);
+  scheduleSave(); draw(); runChecksSoon();
+  openStampSheet(el._id);
+}
+function openStampSheet(id){
+  curEl = DOC.data.elements.find(e=>e._id===id); if(!curEl) return;
+  $('sTitle').textContent = (STAMP_LABEL[curEl.type]||curEl.type) + (curEl.wall? ' · קיר '+curEl.wall : '');
+  const unit = SET.units==='mm'?'מ״מ':'ס״מ';
+  $('sCornerLbl').textContent = 'מרחק מפינה ('+unit+')';
+  $('sCorner').value = curEl.from_corner && curEl.from_corner.cm!=null ? cmToUnit(curEl.from_corner.cm) : '';
+  $('sHeight').value = curEl.height && curEl.height.cm!=null ? cmToUnit(curEl.height.cm) : '';
+  $('sNote').value = curEl.note||'';
+  const extra = $('sExtra'); extra.innerHTML='';
+  if(curEl.type==='window' || curEl.type==='door'){
+    extra.innerHTML = `
+      <div class="field"><label>רוחב (${unit})</label><input id="sWidth" inputmode="decimal"></div>
+      <div class="field"><label>גובה פתח (${unit})</label><input id="sOpenH" inputmode="decimal"></div>`;
+    $('sWidth').value = curEl.width && curEl.width.cm!=null ? cmToUnit(curEl.width.cm) : '';
+    $('sOpenH').value = curEl.opening_height && curEl.opening_height.cm!=null ? cmToUnit(curEl.opening_height.cm) : '';
+    if(curEl.type==='door'){
+      extra.innerHTML += `<div class="field"><label>כיוון פתיחה</label>
+        <select id="sSwing"><option value="unknown">לא צוין</option><option value="left">שמאל</option><option value="right">ימין</option><option value="sliding">הזזה</option><option value="none">ללא</option></select></div>`;
+      $('sSwing').value = curEl.swing||'unknown';
+    }
+  }
+  $('sheetStamp').classList.add('open');
+}
+$('sClose').onclick = ()=> $('sheetStamp').classList.remove('open');
+function cmToUnit(cm){ return SET.units==='mm'? Math.round(cm*100)/10 : Math.round(cm*10)/10; }
+function unitToCm(v){ const n=parseFloat(v); if(!isFinite(n)) return null; return SET.units==='mm'? n/10 : n; }
+$('sSave').onclick = ()=>{
+  if(!curEl) return;
+  pushHistory();
+  const mk = (raw)=> raw!=='' ? {cm:unitToCm(raw), status:'measured', source:'typed', raw, round:activeRound} : null;
+  curEl.from_corner = mk($('sCorner').value);
+  curEl.height = mk($('sHeight').value);
+  if($('sWidth')) curEl.width = mk($('sWidth').value);
+  if($('sOpenH')) curEl.opening_height = mk($('sOpenH').value);
+  if($('sSwing')) curEl.swing = $('sSwing').value;
+  curEl.note = $('sNote').value.trim();
+  $('sheetStamp').classList.remove('open');
+  scheduleSave(); draw(); runChecksSoon();
+};
+$('sDel').onclick = ()=>{
+  if(!curEl) return; pushHistory();
+  DOC.data.elements = DOC.data.elements.filter(e=>e!==curEl);
+  $('sheetStamp').classList.remove('open'); scheduleSave(); draw(); runChecksSoon();
+};
+$('sReturn').onclick = ()=>{
+  if(!curEl) return;
+  curEl.height = {cm:null, status:'not_measured_return', round:activeRound};
+  $('sheetStamp').classList.remove('open'); scheduleSave(); runChecksSoon(); toast('סומן לחזרה');
+};
+$('sMic1').onclick = ()=> dictateInto('sCorner', null);
+$('sMic2').onclick = ()=> dictateInto('sHeight', null);
+
+/* ---------- H= גובה נקודתי ---------- */
+let curHeight=null;
+function placeHeight(w){
+  pushHistory();
+  const nearWall = nearestWallToPoint(w);
+  const hh = {_id:uid(), value:null, kind:'point', wall:nearWall?nearWall.id:null, at:[Math.round(w.x*10)/10,Math.round(w.y*10)/10], floor_ref:'unknown', _round:activeRound};
+  DOC.data.heights.push(hh);
+  scheduleSave(); draw(); runChecksSoon();
+  openHeightSheet(hh._id);
+}
+function openHeightSheet(id){
+  curHeight = DOC.data.heights.find(h=>h._id===id); if(!curHeight) return;
+  $('hKind').value = curHeight.kind||'point';
+  $('hValLbl').textContent = 'גובה ('+(SET.units==='mm'?'מ״מ':'ס״מ')+')';
+  $('hVal').value = curHeight.value && curHeight.value.cm!=null ? cmToUnit(curHeight.value.cm) : '';
+  $('hFloorRefWrap').hidden = curHeight.kind!=='floor_step';
+  $('hFloorRef').value = curHeight.floor_ref||'unknown';
+  $('sheetHeight').classList.add('open');
+}
+$('hClose').onclick = ()=> $('sheetHeight').classList.remove('open');
+$('hKind').onchange = ()=>{ $('hFloorRefWrap').hidden = $('hKind').value!=='floor_step'; };
+$('hSave').onclick = ()=>{
+  if(!curHeight) return;
+  pushHistory();
+  const raw = ($('hVal').value||'').trim();
+  curHeight.kind = $('hKind').value;
+  curHeight.floor_ref = $('hFloorRef').value;
+  curHeight.value = raw!=='' ? {cm:unitToCm(raw), status:'measured', source:'typed', raw, round:activeRound} : null;
+  $('sheetHeight').classList.remove('open');
+  scheduleSave(); draw(); runChecksSoon();
+};
+$('hDel').onclick = ()=>{
+  if(!curHeight) return; pushHistory();
+  DOC.data.heights = DOC.data.heights.filter(h=>h!==curHeight);
+  $('sheetHeight').classList.remove('open'); scheduleSave(); draw(); runChecksSoon();
+};
+$('hReturn').onclick = ()=>{
+  if(!curHeight) return;
+  curHeight.value = {cm:null, status:'not_measured_return', round:activeRound};
+  $('sheetHeight').classList.remove('open'); scheduleSave(); runChecksSoon(); toast('סומן לחזרה');
+};
+$('hMic').onclick = ()=> dictateInto('hVal', null);
+
+/* ---------- הכתבה ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null;
+function dictateInto(numField, noteField){
+  if(!SET.tool_dictation || !SR){ toast('הכתבה כבויה או לא נתמכת. אפשר להקליד.'); return; }
+  if(rec){ rec.stop(); return; }
+  rec = new SR(); rec.lang='he-IL'; rec.interimResults=false; rec.maxAlternatives=1;
+  rec.onresult = ev=>{
+    const t = ev.results[0][0].transcript || '';
+    const num = (t.match(/\d+(\.\d+)?/)||[])[0];
+    if(num) $(numField).value = num;
+    if(noteField){
+      const words = t.replace(/\d+(\.\d+)?/g,'').replace(/\s+/g,' ').trim();
+      if(words.length>1) $(noteField).value = ($(noteField).value ? $(noteField).value+' ':'') + words;
+    }
+    if(!num) toast('לא זוהה מספר בדיבור');
+  };
+  rec.onerror = e=> toast('המיקרופון נכשל: '+e.error);
+  rec.onend = ()=>{ rec=null; };
+  rec.start(); toast('מדבר...');
+}
+
+/* ---------- מרכוז ---------- */
+function bbox(){
+  const pts = DOC.data.nodes;
+  const extra = [...DOC.data.elements.map(e=>e.at), ...DOC.data.heights.map(h=>h.at)].filter(Boolean);
+  if(!pts.length && !extra.length) return null;
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(const p of pts){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}
+  for(const p of extra){x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}
+  for(const s of DOC.data.ink) for(const p of (s.points||[])){x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}
+  return {x0,y0,x1,y1,w:Math.max(1,x1-x0),h:Math.max(1,y1-y0)};
+}
+function fit(){
+  const b = bbox(); const r = cv.getBoundingClientRect();
+  if(!b){ view={ox:r.width/2, oy:r.height/2, s:1}; draw(); return; }
+  const pad=70;
+  view.s = Math.min((r.width-pad*2)/b.w, (r.height-pad*2)/b.h, 4) || 1;
+  view.ox = r.width/2-(b.x0+b.w/2)*view.s;
+  view.oy = r.height/2-(b.y0+b.h/2)*view.s;
+  draw();
+}
+
+/* =========================================================
+   בדיקות בזמן אמת R1–R8
+   ========================================================= */
+let checkQueue = [];
+let dismissedKeys = new Set();
+function checkKey(rule,target){ return rule+'|'+(target||''); }
+
+function runChecksSoon(){ clearTimeout(runChecksSoon._t); runChecksSoon._t = setTimeout(runChecks, 400); }
+function runChecks(){
+  if(!DOC) return;
+  const d = DOC.data;
+  const found = [];
+  // R1: קיר בלי דיו/מספר ליד אמצע
+  if(SET.rule_R1) for(const w of d.walls){
+    const hasLen = w.length && w.length.cm!=null;
+    const a=nodePos(w.from), b=nodePos(w.to), mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    const hasInkNear = d.ink.some(s=> (s.points||[]).some(p=>Math.hypot(p[0]-mx,p[1]-my)<40));
+    if(!hasLen && !hasInkNear) found.push({rule:'R1', message:'לקיר '+w.id+' אין מידה', target:w.id});
+  }
+  // R2: אין אף H= בדף
+  if(SET.rule_R2 && d.heights.length===0) found.push({rule:'R2', message:'לא נרשם גובה בדף (H=)', target:null});
+  // R3: חדר לא סגור
+  if(SET.rule_R3 && d.walls.length>=2){
+    const deg = {};
+    for(const w of d.walls){ deg[w.from]=(deg[w.from]||0)+1; deg[w.to]=(deg[w.to]||0)+1; }
+    const open = Object.values(deg).some(v=>v===1);
+    if(open) found.push({rule:'R3', message:'החדר לא סגור (יש קצה פתוח)', target:null});
+  }
+  // R4: קיר בלי תמונה
+  if(SET.rule_R4 && SET.tool_camera) for(const w of d.walls){
+    if(!w.photos || !w.photos.length) found.push({rule:'R4', message:'לקיר '+w.id+' אין תמונה', target:w.id});
+  }
+  // R5: בלי שקעים/מים/מיזוג
+  if(SET.rule_R5){
+    const hasAny = d.elements.some(e=>['outlet','water','ac'].includes(e.type));
+    if(!hasAny) found.push({rule:'R5', message:'סימנת שקעים / מים / מיזוג?', target:null});
+  }
+  // R6: סכום מקטעים לא תואם (מסודר בלבד)
+  if(SET.rule_R6 && d.mode!=='free') for(const w of d.walls){
+    if(w.segments && w.segments.length && w.length && w.length.cm!=null){
+      const sum = w.segments.reduce((s,x)=>s+(x.cm||0),0);
+      if(Math.abs(sum - w.length.cm) > 0.5) found.push({rule:'R6', message:'קיר '+w.id+': סכום המקטעים ('+fmtNum(sum)+') לא תואם לכולל ('+fmtNum(w.length.cm)+')', target:w.id});
+    }
+  }
+  // R7: ערך חשוד
+  if(SET.rule_R7){
+    const check = (val,label,target)=>{
+      if(!val || val.cm==null) return;
+      const raw = val.raw||''; const cm = val.cm;
+      const looksLikeMM = /^\d{4,}$/.test(raw) && !raw.includes('.');
+      if(cm>1000 || cm<0.5 || looksLikeMM){
+        const guess = looksLikeMM ? (parseFloat(raw)/10) : cm;
+        found.push({rule:'R7', message: (label?label+' ':'')+raw+' — התכוונת '+fmtNum(guess)+'?', target});
+      }
+    };
+    for(const w of d.walls) check(w.length, 'קיר '+w.id, w.id);
+    for(const h of d.heights) check(h.value, 'H=', null);
+    for(const e of d.elements) check(e.height, STAMP_LABEL[e.type], e._id);
+  }
+  // R8: פריט מסומן לחזור
+  if(SET.rule_R8){
+    const rets = [];
+    for(const w of d.walls) if(w.length && w.length.status==='not_measured_return') rets.push('קיר '+w.id);
+    for(const e of d.elements) if(e.height && e.height.status==='not_measured_return') rets.push(STAMP_LABEL[e.type]);
+    for(const h of d.heights) if(h.value && h.value.status==='not_measured_return') rets.push('H=');
+    if(rets.length) found.push({rule:'R8', message:'ברשימת החזרה: '+rets.join(', '), target:null});
+  }
+
+  checkQueue = found.filter(f=>!dismissedKeys.has(checkKey(f.rule,f.target)));
+  d.checks = found.map(f=>({rule:f.rule, message:f.message, target:f.target, state: dismissedKeys.has(checkKey(f.rule,f.target))?'dismissed':'open'}));
+  scheduleSave();
+  showNextCheck();
+}
+let curCheck=null;
+function showNextCheck(){
+  if(!checkQueue.length){ $('checkbar').classList.remove('open'); return; }
+  curCheck = checkQueue[0];
+  $('checkMsg').textContent = curCheck.message;
+  $('checkbar').classList.add('open');
+}
+$('bCheckReturn').onclick = ()=>{
+  if(!curCheck) return;
+  dismissedKeys.add(checkKey(curCheck.rule, curCheck.target));
+  const c = DOC.data.checks.find(c=>c.rule===curCheck.rule && c.target===curCheck.target);
+  if(c) c.state='return_later';
+  checkQueue.shift(); scheduleSave(); showNextCheck();
+};
+$('bCheckDismiss').onclick = ()=>{
+  if(!curCheck) return;
+  dismissedKeys.add(checkKey(curCheck.rule, curCheck.target));
+  const c = DOC.data.checks.find(c=>c.rule===curCheck.rule && c.target===curCheck.target);
+  if(c) c.state='dismissed';
+  checkQueue.shift(); scheduleSave(); showNextCheck();
+};
+
+/* =========================================================
+   סיים ושלח
+   ========================================================= */
+$('bClose2').onclick = ()=>{
+  flushSave();
+  renderCloseScreen();
+  showScreen('screenClose');
+};
+$('bCloseBack').onclick = ()=> showScreen('screenMain');
+function renderCloseScreen(){
+  const cl = $('closeChecklist'); cl.innerHTML='';
+  if(!SET.checklistOnClose || !DOC.data.checklist.length){ cl.innerHTML='<div class="empty">כבוי בהגדרות</div>'; }
+  else for(const it of DOC.data.checklist){
+    const row = document.createElement('div'); row.className='clitem';
+    row.innerHTML = `<span class="txt">${esc(it.item)}</span><span class="st ${it.state}">${stLabel(it.state)}</span>`;
+    cl.appendChild(row);
+  }
+  const rt = $('closeReturns'); rt.innerHTML='';
+  const opens = DOC.data.checks.filter(c=>c.state==='return_later'||c.state==='open');
+  if(!opens.length) rt.innerHTML='<div class="empty">אין פריטים פתוחים</div>';
+  else for(const c of opens){ const row=document.createElement('div'); row.className='listitem'; row.innerHTML=`<div class="meta"><b>${esc(c.message)}</b></div>`; rt.appendChild(row); }
+}
+
+function sanitizeFile(s){ return (s||'').replace(/[\\/:*?"<>|]/g,'').trim().replace(/\s+/g,'_'); }
+async function buildExport(){
+  const d = DOC.data;
+  d.settings_snapshot = {...SET};
+  const jsonName = sanitizeFile(d.header.client)+'_'+sanitizeFile(d.header.space)+'_'+d.header.date+'.json';
+  const pngName = sanitizeFile(d.header.client)+'_'+sanitizeFile(d.header.space)+'_'+d.header.date+'.png';
+  // JSON: הסרת שדות פנימיים (מתחילים ב-_, כמו _id/_round/_mid/_photoId) לצורך פלט נקי לפי הסכימה
+  const clean = JSON.parse(JSON.stringify(d, (k,v)=> (k.startsWith && k.startsWith('_')) ? undefined : v));
+  const jsonBlob = new Blob([JSON.stringify(clean,null,1)], {type:'application/json'});
+  const pngBlob = await renderExportPNG();
+  return {jsonBlob, pngBlob, jsonName, pngName};
+}
+function renderExportPNG(){
+  return new Promise(resolve=>{
+    const b = bbox() || {x0:0,y0:0,x1:200,y1:200,w:200,h:200};
+    const pad=90, titleH=46, legendH=26, sc=2;
+    const w=b.w+pad*2, h=b.h+pad*2+titleH+legendH;
+    const off=document.createElement('canvas'); off.width=w*sc; off.height=h*sc;
+    const c=off.getContext('2d'); c.scale(sc,sc);
+    c.fillStyle='#FFFFFF'; c.fillRect(0,0,w,h);
+    c.fillStyle='#23282D'; c.font='700 20px Heebo, system-ui, sans-serif'; c.textAlign='right'; c.direction='rtl';
+    const d = DOC.data;
+    c.fillText(`${d.header.client}  ${d.header.space}  ${d.header.date}`, w-24, 30);
+    drawScene(c, {ox:pad-b.x0, oy:pad-b.y0+titleH, s:1}, w, h-legendH, {grid:false, bg:'transparent'});
+    // מקרא
+    c.font='400 12px Heebo, system-ui, sans-serif'; c.fillStyle='#555'; c.textAlign='right';
+    c.fillText('שקע · מתג · מים · ניקוז · גז · מזגן · לוח · קורה · חלון · דלת · H= גובה נקודתי', w-24, h-8);
+    off.toBlob(bl=> resolve(bl), 'image/png');
+  });
+}
+$('bExportShare').onclick = async ()=>{
+  const {jsonBlob, pngBlob, jsonName, pngName} = await buildExport();
+  const files = [
+    new File([pngBlob], pngName, {type:'image/png'}),
+    new File([jsonBlob], jsonName, {type:'application/json'}),
+  ];
+  if(navigator.canShare && navigator.canShare({files})){
+    try{ await navigator.share({files, title: DOC.data.header.space, text: DOC.data.header.client+' '+DOC.data.header.space}); toast('נשלח'); return; }
+    catch(e){ /* בוטל או נכשל — נופל לשמירה ידנית */ }
+  }
+  $('fallbackLinks').hidden=false;
+  $('lnkPng').href = URL.createObjectURL(pngBlob); $('lnkPng').download = pngName;
+  $('lnkJson').href = URL.createObjectURL(jsonBlob); $('lnkJson').download = jsonName;
+  toast('שיתוף קבצים לא נתמך כאן — שמירה ידנית למטה');
+};
+
+/* ---------- Service worker ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+/* ---------- אתחול ---------- */
+openDB().then(refreshStartLists);
+</script>
+</body>
+</html>
