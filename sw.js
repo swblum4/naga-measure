@@ -2,7 +2,7 @@
 // לקח 16.9.2026: cache-first עם שם קבוע הגיש גרסה ישנה לנצח. לכן:
 //   1. index.html (וניווט) = רשת-קודם, מטמון רק כשאין רשת.
 //   2. שם-המטמון משתנה בכל פרסום ⇐ המטמון הישן נמחק ב-activate.
-const CACHE = 'miki-measure-2026-09-16b';
+const CACHE = 'miki-measure-2026-09-16c';
 const CORE = [
   './',
   './index.html',

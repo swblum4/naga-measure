@@ -95,6 +95,12 @@
   #sideMenu button{background:transparent;color:#222;text-align:start;padding:11px 12px;font-size:14px;border-radius:8px}
   #sideMenu button:hover{background:#F1F3F5}
   #sideMenu button.danger{color:#A03127}
+  #toolbar button.tog.on{background:#E6F4EA;color:#1E7E34}
+  #dimBox{position:absolute;display:none;align-items:center;gap:6px;background:#fff;border-radius:10px;
+    box-shadow:0 4px 16px rgba(0,0,0,.22);padding:6px;z-index:23;width:190px}
+  #dimBox.open{display:flex}
+  #dimBox input{width:84px;padding:8px 6px;font-size:17px;text-align:center;direction:ltr}
+  #dimBox button{padding:8px 10px;font-size:13px}
   #screenMain{position:relative}
 
   #stage{flex:1;position:relative;background:var(--paper);min-height:0}
@@ -149,7 +155,7 @@
   <div class="brandhead">
     <h1>מדידות</h1>
     <p>ציור חופשי או לפי רשימה, בכל מכשיר, בלי הרשמה</p>
-    <p style="font-size:11px;color:#7C858E">גרסה 16.9.2026 ב · סרגל בסגנון Samsung Notes</p>
+    <p style="font-size:11px;color:#7C858E">גרסה 16.9.2026 ג · עט⇄קו, קנה-מידה, עריכה</p>
   </div>
   <div class="card">
     <button class="go big" id="bNew">מדידה חדשה</button>
@@ -171,13 +177,7 @@
 <div id="screenNew" hidden>
   <div class="topbar"><button class="ghost" id="bNewBack">חזרה</button><h1>מדידה חדשה</h1></div>
   <div class="card">
-    <div class="field"><label>לקוח</label><input id="nClient" placeholder="למשל: לוי"></div>
-    <div class="field"><label>שם החלל</label><input id="nSpace" placeholder="למשל: מטבח, ארון הורים"></div>
-    <div class="field"><label>סוג החלל</label>
-      <select id="nType"></select>
-    </div>
-    <div class="field"><label>מה בונים (לא חובה)</label><input id="nWhat" placeholder="למשל: ארון עליון ותחתון"></div>
-    <div class="field"><label>תאריך</label><input id="nDate" type="date"></div>
+    <div class="field"><label>לקוח · קומה · פריט / חדר / קיר</label><input id="nTitle" placeholder="למשל: נרקיס קומה 2 נ3" autocomplete="off"></div>
     <button class="go big" id="bNewStart">התחלת מדידה</button>
   </div>
 </div>
@@ -194,12 +194,7 @@
     <div id="toolSettings"></div>
   </div>
   <div class="card">
-    <b>הצעת מידה אחרי קו</b>
-    <div class="switchrow"><span class="lbl">בציור חופשי</span><div class="sw" data-k="dimAfterLineFree"><i></i></div></div>
-    <div class="switchrow"><span class="lbl">בעבודה לפי רשימה</span><div class="sw" data-k="dimAfterLineStructured"><i></i></div></div>
-  </div>
-  <div class="card">
-    <b>הערות בזמן העבודה</b>
+    <b>בדיקות ב„סיים ושלח”</b>
     <div id="ruleSettings"></div>
   </div>
   <div class="card">
@@ -214,8 +209,7 @@
     <div class="brand" id="hdrTitle">—<small id="hdrSub"></small></div>
     <button id="bUndo" class="ico" title="ביטול"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/><path d="M9 12h7a4 4 0 0 1 0 8h-2"/></svg></button>
     <button id="bRedo" class="ico" title="חזרה על פעולה"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/><path d="M15 12H8a4 4 0 0 0 0 8h2"/></svg></button>
-    <button id="bModeToggle" class="on">ציור חופשי</button>
-    <button id="bChecklist">רשימה</button>
+    <button id="bChecklist" hidden>רשימה</button>
     <button id="bClose2" class="go">סיים ושלח</button>
     <button id="bMenu" class="ico" title="עוד"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/></svg></button>
   </header>
@@ -226,31 +220,34 @@
     <button id="mClear" class="danger">מחיקת כל הציור</button>
   </div>
   <div id="toolbar">
-    <button id="tInk" class="on"><svg viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19z"/><path d="M14 6l4 4"/></svg>עט</button>
-    <button id="tHighlighter"><svg viewBox="0 0 24 24"><path d="M9 15l-4 4h6l2-2"/><path d="M9 15l8-8 2 2-8 8z" fill="currentColor" fill-opacity=".25"/><path d="M4 21h16"/></svg>סימנונית</button>
+    <button id="tDraw" class="on" title="עט חופשי / קווים ישרים">
+      <svg id="icoPen" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19z"/><path d="M14 6l4 4"/></svg>
+      <svg id="icoLine" viewBox="0 0 24 24" hidden><path d="M5 19L19 5"/><circle cx="5" cy="19" r="1.6" fill="currentColor"/><circle cx="19" cy="5" r="1.6" fill="currentColor"/></svg>
+      <span id="tDrawLbl">עט</span>
+    </button>
     <button id="tEraser"><svg viewBox="0 0 24 24"><path d="M5 15l8-8 6 6-5 5H9z"/><path d="M4 20h16"/></svg>מחק</button>
-    <button id="tText"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v14M9 20h6"/></svg>טקסט</button>
     <span class="tsep"></span>
     <span class="swatch" style="background:#23282D" data-c="#23282D"></span>
     <span class="swatch" style="background:#B0392E" data-c="#B0392E"></span>
     <span class="swatch" style="background:#2A5C9A" data-c="#2A5C9A"></span>
     <span class="swatch" style="background:#F4D03F" data-c="#F4D03F"></span>
     <span class="tsep"></span>
-    <button id="tWall"><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><circle cx="5" cy="19" r="1.6" fill="currentColor"/><circle cx="19" cy="5" r="1.6" fill="currentColor"/></svg>קו קיר</button>
-    <button id="tStamp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg>חותמת</button>
+    <button id="tText"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v14M9 20h6"/></svg>טקסט</button>
     <button id="tHeight"><svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M6 12h12"/></svg>H=</button>
+    <button id="tMove"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>עריכה</button>
+    <span class="tsep"></span>
+    <button id="tSnap" class="tog on"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 10h16M4 16h16M10 4v16M16 4v16"/></svg>גריד</button>
+    <button id="bFit"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/><path d="M10.5 7v7M7 10.5h7"/></svg>הצג הכל</button>
     <button id="bCam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3"/></svg>מצלמה</button>
     <input id="fileCam" type="file" accept="image/*" capture="environment" hidden>
   </div>
   <div id="stage">
     <canvas id="cv"></canvas>
     <div id="toast"></div>
-    <div id="stampPicker"></div>
-
-    <div id="checkbar">
-      <div class="msg" id="checkMsg"></div>
-      <button id="bCheckReturn">לחזור</button>
-      <button id="bCheckDismiss">לא רלוונטי</button>
+    <div id="dimBox">
+      <input id="dimVal" inputmode="decimal" placeholder="מידה" autocomplete="off">
+      <button id="dimOk" class="go">✓</button>
+      <button id="dimMore" class="ghost">עוד</button>
     </div>
 
     <div class="sheet" id="sheetWall">
@@ -269,25 +266,6 @@
         <button class="go" id="wSave" style="flex:1">שמירה</button>
         <button class="ghost" id="wReturn">לא נמדד — לחזור</button>
         <button class="danger" id="wDel">מחיקה</button>
-      </div>
-    </div>
-
-    <div class="sheet" id="sheetStamp">
-      <div class="row"><div class="title" id="sTitle">חותמת</div><button class="ghost" id="sClose">סגירה</button></div>
-      <div class="row">
-        <div class="field" style="flex:1;margin-bottom:0"><label id="sCornerLbl">מרחק מפינה</label><input id="sCorner" inputmode="decimal"></div>
-        <button class="mic" id="sMic1">🎤</button>
-      </div>
-      <div class="row">
-        <div class="field" style="flex:1;margin-bottom:0"><label>גובה</label><input id="sHeight" inputmode="decimal"></div>
-        <button class="mic" id="sMic2">🎤</button>
-      </div>
-      <div id="sExtra"></div>
-      <div class="field"><label>הערה</label><input id="sNote" placeholder=""></div>
-      <div class="row" style="margin-top:12px">
-        <button class="go" id="sSave" style="flex:1">שמירה</button>
-        <button class="ghost" id="sReturn">לא נמדד — לחזור</button>
-        <button class="danger" id="sDel">מחיקה</button>
       </div>
     </div>
 
@@ -404,11 +382,9 @@ const STAMP_LABEL = Object.fromEntries(STAMP_TYPES);
 
 /* ---------- הגדרות ---------- */
 const DEFAULT_SETTINGS = {
-  units:'cm',
-  tool_pen:true, tool_text:true, showGrid:true, tool_lineSnap:true, tool_wallLetters:true, tool_stamps:true,
-  tool_height:true, tool_camera:true, tool_colorRoles:true, tool_dictation:true,
-  tool_palmRejection:true, tool_completion:true,
-  dimAfterLineFree:false, dimAfterLineStructured:true,
+  units:'cm', showGrid:true, gridSnap:true,
+  tool_pen:true, tool_text:true, tool_wallLetters:true, tool_height:true, tool_camera:true,
+  tool_colorRoles:true, tool_dictation:true, tool_palmRejection:true, tool_completion:true, tool_checklist:false,
   rule_R1:true, rule_R2:true, rule_R3:true, rule_R4:true, rule_R5:true,
   rule_R6:true, rule_R7:true, rule_R8:true,
   checklistOnClose:true,
@@ -421,10 +397,9 @@ function loadSettings(){
 function saveSettings(){ localStorage.setItem('miki_measure_settings', JSON.stringify(SET)); }
 
 const TOOL_LABELS = [
-  ['tool_pen','עט חופשי, סימנונית ומחק'],['tool_text','טקסט על הדף'],['tool_lineSnap','יישור קו לאנכי/אופקי'],['tool_wallLetters','אותיות קיר אוטומטיות'],
-  ['tool_stamps','חותמות אלמנטים'],['tool_height','כלי H= (גובה נקודתי)'],['tool_camera','מצלמה לקיר'],
+  ['tool_pen','עט, קו ומחק'],['tool_text','טקסט על הדף'],['tool_height','כלי H= (גובה נקודתי)'],['tool_camera','מצלמה לקיר'],
   ['tool_colorRoles','צבעי עט'],['tool_dictation','הכתבה (מיקרופון)'],['tool_palmRejection','דחיית כף יד (עט/אצבע)'],
-  ['tool_completion','השלמה (סבב 2)'],
+  ['tool_wallLetters','אותיות קיר אוטומטיות'],['tool_checklist','כפתור „רשימה” בכותרת'],['tool_completion','השלמה (סבב 2)'],
 ];
 const RULE_LABELS = [
   ['rule_R1','R1 · קיר בלי מידה'],['rule_R2','R2 · אין אף גובה בדף'],['rule_R3','R3 · חדר לא סגור'],
@@ -464,14 +439,14 @@ function newDoc(header){
       version:'0.1', header, mode:'free', units:SET.units, scale_cm_per_px:null,
       settings_snapshot:{...SET},
       nodes:[], walls:[], heights:[], elements:[], ink:[], notes:[], photos:[],
-      checks:[], checklist: buildChecklist(header.space_type),
+      checks:[], checklist: buildChecklist(),
       rounds:[{n:1,date:header.date,label:'מדידה'}], office_read:null,
     }
   };
 }
-function buildChecklist(spaceType){
-  const items = [...COMMON_CHECKLIST, ...(EXTRA_CHECKLIST[spaceType]||[])];
-  return items.map(item=>({item, state:'open'}));
+function buildChecklist(){
+  // סוג-חלל הוצא מהמערכת (עידן 16.9) — רשימה כללית בלבד
+  return COMMON_CHECKLIST.map(item=>({item, state:'open'}));
 }
 
 function scheduleSave(){
@@ -502,7 +477,7 @@ async function refreshStartLists(){
   for(const d of all){
     const h = d.data.header;
     const row = document.createElement('div'); row.className='listitem';
-    row.innerHTML = `<div class="meta"><b>${esc(h.client)} · ${esc(h.space)}</b><small>${h.date} · סבב ${d.data.rounds.length}</small></div>`;
+    row.innerHTML = `<div class="meta"><b>${esc(docTitle(h))}</b><small>${h.date} · סבב ${d.data.rounds.length}</small></div>`;
     row.onclick = ()=>{ DOC = d; activeRound = d.data.rounds.length; openMain(); };
     cont.appendChild(row);
 
@@ -521,22 +496,19 @@ function startCompletion(d){
 }
 
 $('bNew').onclick = ()=>{
-  $('nDate').value = todayStr();
+  $('nTitle').value = '';
   showScreen('screenNew');
+  setTimeout(()=> $('nTitle').focus({preventScroll:true}), 60);
 };
 $('bNewBack').onclick = ()=> showScreen('screenStart');
 $('bSettings').onclick = ()=>{ renderSettings(); showScreen('screenSettings'); };
-
-for(const [v,l] of SPACE_TYPES){ const o=document.createElement('option'); o.value=v; o.textContent=l; $('nType').appendChild(o); }
+$('nTitle').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); $('bNewStart').click(); } });
 
 $('bNewStart').onclick = ()=>{
-  const client = $('nClient').value.trim() || 'לקוח';
-  const space = $('nSpace').value.trim() || 'חלל';
-  const space_type = $('nType').value;
-  const what_we_build = $('nWhat').value.trim();
-  const date = $('nDate').value || todayStr();
+  // שדה אחד בלבד (עידן 16.9): „נרקיס קומה 2 נ3”. סוג-חלל הוצא; client/space נשמרים לתאימות לסכימה.
+  const title = $('nTitle').value.trim() || 'מדידה';
   const device = (navigator.userAgent.match(/SM-\w+|iPhone|iPad|Android/)||['מכשיר'])[0];
-  DOC = newDoc({client, space, space_type, what_we_build, date, device});
+  DOC = newDoc({title, client:title, space:'', space_type:'other', what_we_build:'', date:todayStr(), device});
   activeRound = 1;
   idbPut('docs', DOC).then(()=>{ openMain(); toast('מדידה חדשה נפתחה'); });
 };
@@ -559,7 +531,6 @@ function renderSettings(){
   }
   document.querySelectorAll('#screenSettings .sw').forEach(sw=>{
     const k = sw.dataset.k;
-    if(k==='dimAfterLineFree'||k==='dimAfterLineStructured') sw.classList.toggle('on', !!SET[k]);
     sw.onclick = ()=>{
       SET[k] = !SET[k]; sw.classList.toggle('on', SET[k]); saveSettings();
       applyToolVisibility(); toast('נשמר');
@@ -574,43 +545,32 @@ $('bSetBack').onclick = ()=> showScreen(DOC?'screenMain':'screenStart');
 $('bSetDone').onclick = ()=> showScreen(DOC?'screenMain':'screenStart');
 
 function applyToolVisibility(){
-  $('tInk').closest('#toolbar') && ($('tInk').style.display = SET.tool_pen?'':'none');
-  $('tHighlighter').style.display = SET.tool_pen?'':'none';
+  $('tDraw').style.display = SET.tool_pen?'':'none';
   $('tEraser').style.display = SET.tool_pen?'':'none';
   $('tText').style.display = SET.tool_text!==false?'':'none';
-  $('tWall').style.display = SET.tool_lineSnap?'':'none';
-  $('tStamp').style.display = SET.tool_stamps?'':'none';
   $('tHeight').style.display = SET.tool_height?'':'none';
   $('bCam').style.display = SET.tool_camera?'':'none';
   document.querySelectorAll('#toolbar .swatch').forEach(s=> s.style.display = SET.tool_colorRoles?'':'none');
+  $('bChecklist').hidden = !SET.tool_checklist;
+  $('tSnap').classList.toggle('on', SET.gridSnap!==false);
 }
 
 /* ================= מסך עבודה: מצב וכלים ================= */
-let tool = 'ink';           // ink | highlighter | wall | stamp | height
-let drawMode = 'pen';       // pen | highlighter
-let stampType = 'outlet';
+let tool = 'draw';          // draw | eraser | text | height | move
+let lineMode = false;       // draw: false = עט חופשי · true = קווים ישרים (קירות)
 let inkColor = '#23282D';
 
+function docTitle(h){ return h.title || (h.client + (h.space ? ' · '+h.space : '')); }
 function openMain(){
   applyToolVisibility();
-  $('bModeToggle').textContent = DOC.data.mode==='structured' ? 'לפי רשימה' : 'ציור חופשי';
-  $('bModeToggle').classList.toggle('on', DOC.data.mode!=='structured');
-  $('hdrTitle').innerHTML = esc(DOC.data.header.client)+' · '+esc(DOC.data.header.space)+'<small>'+DOC.data.header.date+' · סבב '+activeRound+'</small>';
+  $('hdrTitle').innerHTML = esc(docTitle(DOC.data.header))+'<small>'+DOC.data.header.date+' · סבב '+activeRound+'</small>';
   showScreen('screenMain');
   renderChecklistDrawer();
-  setTool('ink');
+  setTool('draw');
   fit();
   draw();
-  runChecksSoon();
 }
-$('bHome').onclick = ()=>{ flushSave(); refreshStartLists(); showScreen('screenStart'); };
-$('bModeToggle').onclick = ()=>{
-  DOC.data.mode = (DOC.data.mode==='structured') ? 'free' : 'structured';
-  $('bModeToggle').textContent = DOC.data.mode==='structured' ? 'לפי רשימה' : 'ציור חופשי';
-  $('bModeToggle').classList.toggle('on', DOC.data.mode!=='structured');
-  if(DOC.data.mode==='structured') openChecklist();
-  scheduleSave();
-};
+$('bHome').onclick = ()=>{ closeDimBox(); flushSave(); refreshStartLists(); showScreen('screenStart'); };
 $('bChecklist').onclick = openChecklist;
 $('bClDrawerClose').onclick = ()=> $('checklistDrawer').classList.remove('open');
 function openChecklist(){ renderChecklistDrawer(); $('checklistDrawer').classList.add('open'); }
@@ -633,15 +593,35 @@ function stLabel(s){ return {open:'פתוח',done:'בוצע',return_later:'לח�
 /* ---------- כלים ---------- */
 function setTool(t){
   tool = t;
-  for(const [id,name] of [['tInk','ink'],['tHighlighter','highlighter'],['tEraser','eraser'],['tText','text'],['tWall','wall'],['tStamp','stamp'],['tHeight','height']])
+  for(const [id,name] of [['tDraw','draw'],['tEraser','eraser'],['tText','text'],['tHeight','height'],['tMove','move']])
     $(id).classList.toggle('on', t===name);
-  $('stampPicker').classList.remove('open');
   $('sideMenu').classList.remove('open');
+  updateDrawButton();
 }
-$('tInk').onclick = ()=> { drawMode='pen'; setTool('ink'); };
-$('tHighlighter').onclick = ()=> { drawMode='highlighter'; setTool('highlighter'); };
-$('tEraser').onclick = ()=> { setTool('eraser'); toast('העבר את העט על קו כדי למחוק אותו'); };
-$('tText').onclick = ()=> { setTool('text'); toast('הקש על הדף במקום שבו הטקסט יופיע'); };
+function updateDrawButton(){
+  $('icoPen').hidden = lineMode; $('icoLine').hidden = !lineMode;
+  $('tDrawLbl').textContent = lineMode ? 'קו' : 'עט';
+}
+$('tDraw').onclick = ()=>{
+  if(tool==='draw'){
+    lineMode = !lineMode; updateDrawButton();
+    toast(lineMode ? 'קווים ישרים: גרור מנקודה לנקודה' : 'עט חופשי. להחזיק בסוף הקו כדי ליישר אותו');
+  } else setTool('draw');
+};
+$('tEraser').onclick = ()=>{ setTool('eraser'); toast('העבר את העט על קו כדי למחוק אותו'); };
+$('tText').onclick = ()=>{ setTool('text'); toast('הקש על הדף במקום שבו הטקסט יופיע'); };
+$('tHeight').onclick = ()=>{ setTool('height'); toast('הקש על הנקודה שבה נמדד הגובה'); };
+$('tMove').onclick = ()=>{ setTool('move'); toast('גרור קו, טקסט או H= כדי להזיז'); };
+$('tSnap').onclick = ()=>{
+  SET.gridSnap = !(SET.gridSnap!==false); saveSettings();
+  $('tSnap').classList.toggle('on', SET.gridSnap);
+  toast(SET.gridSnap ? 'הצמדה לגריד: דלוקה' : 'הצמדה לגריד: כבויה');
+};
+$('bFit').onclick = ()=> fit();
+document.querySelectorAll('#toolbar .swatch').forEach(s=>{
+  s.onclick = ()=>{ inkColor = s.dataset.c; document.querySelectorAll('#toolbar .swatch').forEach(x=>x.classList.remove('on')); s.classList.add('on'); };
+});
+document.querySelector('#toolbar .swatch').classList.add('on');
 
 /* ---------- תפריט צד (⋮) ---------- */
 $('bMenu').onclick = e=>{ e.stopPropagation(); $('sideMenu').classList.toggle('open'); refreshMenuLabels(); };
@@ -655,34 +635,13 @@ $('mClear').onclick = ()=>{
   if(!confirm('למחוק את כל הציור בדף הזה? אפשר לבטל עם „ביטול”.')) return;
   pushHistory();
   Object.assign(DOC.data, {nodes:[], walls:[], heights:[], elements:[], ink:[], notes:[]});
-  scheduleSave(); draw(); runChecksSoon();
+  DOC.data.scale_cm_per_px = null;
+  closeDimBox(); scheduleSave(); draw();
 };
-$('tWall').onclick = ()=> setTool('wall');
-$('tHeight').onclick = ()=> setTool('height');
-$('tStamp').onclick = ()=>{
-  const sp = $('stampPicker');
-  if(sp.classList.contains('open')){ sp.classList.remove('open'); return; }
-  sp.innerHTML='';
-  for(const [v,l] of STAMP_TYPES){
-    const b = document.createElement('button'); b.textContent=l;
-    b.onclick = ()=>{ stampType=v; setTool('stamp'); sp.classList.remove('open'); toast('הקש על המקום ב'+l); };
-    sp.appendChild(b);
-  }
-  sp.classList.add('open');
-};
-document.querySelectorAll('#toolbar .swatch').forEach(s=>{
-  s.onclick = ()=>{ inkColor = s.dataset.c; document.querySelectorAll('#toolbar .swatch').forEach(x=>x.classList.remove('on')); s.classList.add('on'); };
-});
-document.querySelector('#toolbar .swatch').classList.add('on');
 
 /* ---------- מצלמה לקיר ---------- */
-let camWallId = null;
-$('bCam').onclick = ()=>{
-  toast('הקש על קיר, ואז צלם');
-  const prevTool = tool; setTool('wall'); // הבא: הקשה תבחר קיר קיים
-  pendingCamPick = true;
-};
-let pendingCamPick = false;
+let camWallId = null, pendingCamPick = false;
+$('bCam').onclick = ()=>{ pendingCamPick = true; toast('הקש על הקיר שרוצים לצלם'); };
 function pickWallForPhoto(wallId){
   pendingCamPick = false;
   camWallId = wallId;
@@ -691,10 +650,10 @@ function pickWallForPhoto(wallId){
 $('fileCam').onchange = e=>{
   const f = e.target.files && e.target.files[0]; if(!f || !camWallId) return;
   downscaleToDataURL(f, 1280).then(durl=>{
+    const w = DOC.data.walls.find(w=>w.id===camWallId); if(!w) return;
     const pid = uid();
     idbPut('photos', {id:pid, data:durl});
-    const w = DOC.data.walls.find(w=>w.id===camWallId);
-    const fname = (DOC.data.header.client+'_'+DOC.data.header.space+'_wall'+camWallId+'.jpg').replace(/\s+/g,'_');
+    const fname = sanitizeFile(docTitle(DOC.data.header))+'_wall'+camWallId+'.jpg';
     w.photos.push(pid);
     DOC.data.photos.push({file:fname, wall:camWallId, taken:new Date().toISOString(), _photoId:pid});
     scheduleSave(); draw(); toast('התמונה נשמרה לקיר '+camWallId);
@@ -831,14 +790,14 @@ function wallLabel(c, v, wl, a, b){
   const d=Math.hypot(b.x-a.x,b.y-a.y)||1;
   let nx=-(b.y-a.y)/d, ny=(b.x-a.x)/d; if(ny>0){nx=-nx;ny=-ny;}
   const off=18/v.s, cx=mx+nx*off, cy=my+ny*off;
-  const hasLen = wl.length && wl.length.cm!=null;
-  const txt = (wl.id||'') + (hasLen ? '  '+fmtNum(wl.length.cm) : '');
+  const info = wallCm(wl);   // מוקלד (ירוק) > מחושב מקנה-מידה (אפור) > אות בלבד
+  const txt = (wl.id||'') + (info ? '  '+fmtNum(info.cm) : '');
   c.save(); c.translate(cx,cy); c.scale(1/v.s,1/v.s);
   c.font = '700 14px Heebo, system-ui, sans-serif'; c.textAlign='center'; c.textBaseline='middle';
   const tw = c.measureText(txt).width;
   c.fillStyle='rgba(245,244,241,.92)';
   roundRect(c,-tw/2-8,-12,tw+16,24,7); c.fill();
-  c.fillStyle = hasLen ? '#14624F' : '#9AA2AA';
+  c.fillStyle = info ? (info.derived ? '#7C858E' : '#14624F') : '#9AA2AA';
   c.fillText(txt,0,0);
   c.restore();
   // אמצע הקיר, לצורך בדיקת R1 (דיו קרוב לרצועת אמצע)
@@ -866,14 +825,15 @@ function heightMark(c, v, hh){
   if(!hh.at) return;
   const [x,y]=hh.at;
   c.save(); c.translate(x,y);
+  // השפיץ למטה, בדיוק על הנקודה הנמדדת (עידן 16.9)
   c.fillStyle = hh._round>1 ? '#7B4FA3' : '#2A5C9A';
-  c.beginPath(); c.moveTo(0,-9/v.s); c.lineTo(9/v.s,7/v.s); c.lineTo(-9/v.s,7/v.s); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(0,0); c.lineTo(9/v.s,-16/v.s); c.lineTo(-9/v.s,-16/v.s); c.closePath(); c.fill();
   c.scale(1/v.s,1/v.s);
   const txt = 'H='+(hh.value&&hh.value.cm!=null ? fmtNum(hh.value.cm) : '?');
   c.font='700 11px Heebo, system-ui, sans-serif'; c.fillStyle='rgba(255,255,255,.92)';
   const w = c.measureText(txt).width;
-  roundRect(c,-w/2-5,10,w+10,16,5); c.fill();
-  c.fillStyle='#2A5C9A'; c.textAlign='center'; c.fillText(txt,0,22);
+  roundRect(c,-w/2-5,-36,w+10,16,5); c.fill();
+  c.fillStyle='#2A5C9A'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(txt,0,-28);
   c.restore();
 }
 function roundRect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
@@ -882,6 +842,7 @@ let preview=null, previewStroke=null;
 function draw(){
   const r = cv.getBoundingClientRect();
   drawScene(ctx, view, r.width, r.height);
+  if(dimWall) positionDimBox();
   ctx.save(); ctx.translate(view.ox,view.oy); ctx.scale(view.s,view.s);
   if(preview){
     ctx.strokeStyle='#E4B429'; ctx.lineWidth=2.6/view.s; ctx.setLineDash([6/view.s,5/view.s]);
@@ -889,8 +850,7 @@ function draw(){
     ctx.setLineDash([]);
   }
   if(previewStroke && previewStroke.length>1){
-    ctx.globalAlpha = drawMode==='highlighter' ? 0.3 : 1;
-    ctx.strokeStyle = roundColor(); ctx.lineWidth = drawMode==='highlighter' ? 5/view.s : 2.6/view.s; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.strokeStyle = roundColor(); ctx.lineWidth = 2.6/view.s; ctx.lineCap='round'; ctx.lineJoin='round';
     ctx.beginPath(); ctx.moveTo(previewStroke[0][0],previewStroke[0][1]);
     for(const p of previewStroke.slice(1)) ctx.lineTo(p[0],p[1]);
     ctx.stroke();
@@ -902,9 +862,26 @@ function draw(){
 /* ---------- קלט מגע ---------- */
 const act = new Map();
 let start=null, moved=0, pinch=null, penSeen=false, panOne=null, drawingInk=false;
+let holdT=null, holdLine=null, lastMovePt=null, erasing=null, moving=null;
+
+/* לחיצה ארוכה בסוף קו חופשי (עידן 16.9): ~0.6 שנ׳ בלי תזוזה ⇐ הקו מתיישר ונעשה קו-קיר עם מידה */
+function armHold(){ clearTimeout(holdT); holdT = setTimeout(onHold, 600); }
+function onHold(){
+  if(!drawingInk || holdLine || !previewStroke || previewStroke.length<2 || act.size!==1) return;
+  const p0=previewStroke[0], p1=previewStroke[previewStroke.length-1];
+  if(Math.hypot(p1[0]-p0[0],p1[1]-p0[1])*view.s < 30) return;
+  let A={x:p0[0],y:p0[1]}, B={x:p1[0],y:p1[1]};
+  const ang = Math.abs(Math.atan2(B.y-A.y, B.x-A.x))*180/Math.PI;   // 0..180
+  if(ang<12 || ang>168) B.y=A.y; else if(Math.abs(ang-90)<12) B.x=A.x;
+  A = snapPt(A); B = snapEnd(A,B);
+  holdLine = {a:A, b:B}; previewStroke=null; preview={a:{...A}, b:{...B}};
+  if(navigator.vibrate) navigator.vibrate(25);
+  draw();
+}
+function resetPtr(){ start=null; preview=null; previewStroke=null; drawingInk=false; holdLine=null; erasing=null; moving=null; clearTimeout(holdT); }
 
 cv.addEventListener('pointerdown', e=>{
-  cv.setPointerCapture(e.pointerId);
+  try{ cv.setPointerCapture(e.pointerId); }catch(_){}   // מצביע לא-פעיל (למשל סינתטי) לא יקטע את הטיפול
   act.set(e.pointerId,{x:e.clientX,y:e.clientY});
   const rect=cv.getBoundingClientRect();
   if(act.size===1){
@@ -912,18 +889,17 @@ cv.addEventListener('pointerdown', e=>{
     if(SET.tool_palmRejection && penSeen && e.pointerType!=='pen'){
       panOne = {x:e.clientX,y:e.clientY, ox:view.ox, oy:view.oy}; start=null; preview=null; return;
     }
+    closeDimBox();
     const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
-    if(tool==='ink' || tool==='highlighter'){
-      drawingInk = true; previewStroke = [[w.x,w.y]]; moved=0; start=w;
-    } else if(tool==='eraser'){
-      erasing = {did:false}; eraseAt(w); start=w; moved=0;
-    } else if(tool==='wall'){
-      start = w; moved=0; preview={a:{...w}, b:{...w}};
-    } else {
-      start = w; moved=0; // stamp/height: tap only
-    }
+    moved=0; start=w;
+    if(pendingCamPick) return;                                   // הקשה תבחר קיר ב-endPtr
+    if(tool==='draw' && !lineMode){ drawingInk=true; holdLine=null; previewStroke=[[w.x,w.y]]; lastMovePt=w; armHold(); }
+    else if(tool==='draw'){ start=snapPt(w); preview={a:{...start}, b:{...start}}; }
+    else if(tool==='eraser'){ erasing={did:false}; eraseAt(w); }
+    else if(tool==='move'){ moving=grabAt(w); if(moving) moving.last=w; }
+    // text / height: הקשה בלבד, מטופל ב-endPtr
   } else {
-    preview=null; start=null; drawingInk=false; previewStroke=null;
+    resetPtr();
     const p=[...act.values()];
     pinch={d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y), mx:(p[0].x+p[1].x)/2, my:(p[0].y+p[1].y)/2, s:view.s, ox:view.ox, oy:view.oy};
   }
@@ -944,17 +920,22 @@ cv.addEventListener('pointermove', e=>{
     view.oy = my-rect.top-(pinch.my-rect.top-pinch.oy)*k;
     draw(); return;
   }
-  if(drawingInk && start){
-    const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
-    previewStroke.push([w.x,w.y]); moved = Math.hypot(w.x-start.x,w.y-start.y)*view.s;
+  if(!start) return;
+  const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
+  moved = Math.hypot(w.x-start.x,w.y-start.y)*view.s;
+  if(drawingInk){
+    if(holdLine){ holdLine.b = snapEnd(holdLine.a, w); preview={a:{...holdLine.a}, b:{...holdLine.b}}; }
+    else{
+      previewStroke.push([w.x,w.y]);
+      if(Math.hypot(w.x-lastMovePt.x, w.y-lastMovePt.y)*view.s > 3){ lastMovePt=w; armHold(); }
+    }
     draw(); return;
   }
-  if(erasing){ eraseAt(toWorld(e.clientX-rect.left, e.clientY-rect.top)); return; }
-  if(tool==='wall' && start){
-    const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
-    moved = Math.hypot(w.x-start.x,w.y-start.y)*view.s;
-    preview = {a:{...start}, b:snapEnd(start,w)};
-    draw();
+  if(tool==='draw' && lineMode && preview){ preview={a:{...start}, b:snapEnd(start,w)}; draw(); return; }
+  if(erasing){ eraseAt(w); return; }
+  if(moving){
+    if(!moving.pushed){ pushHistory(); moving.pushed=true; }
+    moveBy(moving, w.x-moving.last.x, w.y-moving.last.y); moving.last=w; draw(); return;
   }
 });
 function endPtr(e){
@@ -962,52 +943,58 @@ function endPtr(e){
   if(panOne){ if(act.size===0) panOne=null; return; }
   if(act.size===0) pinch=null;
   if(!had) return;
+  clearTimeout(holdT);
   const rect=cv.getBoundingClientRect();
   const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
+  const tap = !!start && moved<14;
+  if(pendingCamPick){
+    pendingCamPick=false;
+    if(tap){ const hit = nearestWallToPoint(w); if(hit) pickWallForPhoto(hit.id); else toast('אין קיר קרוב'); }
+    resetPtr(); draw(); return;
+  }
   if(drawingInk){
     drawingInk=false;
-    if(previewStroke && previewStroke.length>2 && moved>6){
+    if(holdLine){ const hl=holdLine; holdLine=null; preview=null; addWall(hl.a, hl.b); }
+    else if(previewStroke && previewStroke.length>2 && moved>6){
       pushHistory();
-      DOC.data.ink.push({color: roundColor(), mode: drawMode, tool:'pen', points: previewStroke.map(p=>[Math.round(p[0]*10)/10,Math.round(p[1]*10)/10]), near_wall:null, _round:activeRound});
-      scheduleSave(); runChecksSoon();
-    } else if(previewStroke && previewStroke.length){
-      hitTest(w);
-    }
+      DOC.data.ink.push({color: roundColor(), mode:'pen', tool:'pen', points: previewStroke.map(p=>[Math.round(p[0]*10)/10,Math.round(p[1]*10)/10]), near_wall:null, _round:activeRound});
+      scheduleSave();
+    } else if(tap) hitTest(w);
     previewStroke=null; start=null; draw(); return;
   }
-  if(erasing){
-    if(erasing.did){ scheduleSave(); runChecksSoon(); }
-    erasing=null; start=null; draw(); return;
-  }
-  if(tool==='text'){
-    if(start && moved<14){
-      const hit = hitTestText(w);
-      if(hit) openTextSheet(hit); else placeText(w);
-    }
-    start=null; draw(); return;
-  }
-  if(tool==='wall'){
+  if(tool==='draw' && lineMode){
     preview=null;
-    if(start){
-      if(moved>14) addWall(start, w); else hitTest(w);
-    }
+    if(start){ if(moved>14) addWall(start, w); else hitTest(w); }
     start=null; draw(); return;
   }
-  if(tool==='stamp' || tool==='height'){
-    if(start && moved<14){
-      if(pendingCamPick){ const hit = nearestWallToPoint(w); if(hit) pickWallForPhoto(hit.id); else toast('אין קיר קרוב'); }
-      else if(tool==='stamp') placeStamp(w);
-      else placeHeight(w);
-    }
-    start=null; draw(); return;
-  }
+  if(erasing){ if(erasing.did) scheduleSave(); erasing=null; start=null; draw(); return; }
+  if(moving){ if(moving.pushed) scheduleSave(); else if(tap) hitTest(w); moving=null; start=null; draw(); return; }
+  if(tool==='move'){ if(tap) hitTest(w); start=null; return; }
+  if(tool==='text'){ if(tap){ const hit=hitTestText(w); if(hit) openTextSheet(hit); else placeText(w); } start=null; draw(); return; }
+  if(tool==='height'){ if(tap){ const hh=hitTestHeight(w); if(hh) openHeightSheet(hh._id); else placeHeight(w); } start=null; draw(); return; }
   start=null;
 }
 cv.addEventListener('pointerup', endPtr);
-cv.addEventListener('pointercancel', e=>{ act.delete(e.pointerId); start=null; preview=null; previewStroke=null; drawingInk=false; erasing=null; draw(); });
+cv.addEventListener('pointercancel', e=>{ act.delete(e.pointerId); resetPtr(); draw(); });
+
+/* ---------- עריכה: תפיסה וגרירה של קו / טקסט / H= / דיו (עידן 16.9) ---------- */
+function hitTestHeight(w){ return DOC.data.heights.find(h=> h.at && Math.hypot(h.at[0]-w.x, h.at[1]-w.y) < 18/view.s) || null; }
+function grabAt(w){
+  const n = hitTestText(w); if(n) return {kind:'note', ref:n};
+  const h = hitTestHeight(w); if(h) return {kind:'height', ref:h};
+  const wl = nearestWallToPoint(w, 18/view.s); if(wl) return {kind:'wall', ref:wl};
+  const s = DOC.data.ink.find(s=> strokeHit(s, w, 14/view.s)); if(s) return {kind:'ink', ref:s};
+  return null;
+}
+function moveBy(m, dx, dy){
+  if(m.kind==='note' || m.kind==='height'){ m.ref.at[0]+=dx; m.ref.at[1]+=dy; }
+  else if(m.kind==='wall'){
+    for(const id of new Set([m.ref.from, m.ref.to])){ const n=DOC.data.nodes.find(n=>n.id===id); if(n){ n.x+=dx; n.y+=dy; } }
+  }
+  else if(m.kind==='ink'){ for(const p of m.ref.points){ p[0]+=dx; p[1]+=dy; } }
+}
 
 /* ---------- מחק: מוחק קו דיו או טקסט שהעט עובר עליו ---------- */
-let erasing = null;
 function distToSeg(w, a, b){
   const dx=b[0]-a[0], dy=b[1]-a[1], L=dx*dx+dy*dy||1;
   let t=((w.x-a[0])*dx+(w.y-a[1])*dy)/L; t=Math.max(0,Math.min(1,t));
@@ -1054,7 +1041,7 @@ $('xSave').onclick = ()=>{
   if(curNote._new){ delete curNote._new; DOC.data.notes.push(curNote); }
   $('sheetText').classList.remove('open'); curNote=null;
   document.documentElement.scrollTop = document.body.scrollTop = 0; // המקלדת בטלפון מזיזה את הדף
-  scheduleSave(); draw(); runChecksSoon();
+  scheduleSave(); draw();
 };
 $('xDel').onclick = ()=>{
   if(!curNote) return;
@@ -1063,18 +1050,21 @@ $('xDel').onclick = ()=>{
 };
 $('xMic').onclick = ()=> dictateInto(null, 'xText');
 
-/* ---------- הצמדות קווי קיר ---------- */
+/* ---------- הצמדה: צמתים, גריד, קווים ---------- */
+const GRID = 25;   // צעד הגריד ביחידות-עולם (= נקודות הרשת על הדף)
 function nearNode(w){
   const tol=22/view.s; let best=null, bd=tol;
   for(const n of DOC.data.nodes){ const d=Math.hypot(n.x-w.x,n.y-w.y); if(d<bd){bd=d;best=n;} }
   return best;
 }
+function gridPt(w){ if(SET.gridSnap===false) return {x:w.x,y:w.y}; return {x:Math.round(w.x/GRID)*GRID, y:Math.round(w.y/GRID)*GRID}; }
+function snapPt(w){ const hit=nearNode(w); return hit ? {x:hit.x,y:hit.y} : gridPt(w); }
 function snapEnd(a,w){
-  let pos={...w};
-  if(SET.tool_lineSnap){ if(Math.abs(pos.x-a.x)>=Math.abs(pos.y-a.y)) pos.y=a.y; else pos.x=a.x; }
-  const hit = nearNode(pos);
-  if(hit) return {x:hit.x,y:hit.y};
-  return pos;
+  let pos={x:w.x,y:w.y};
+  // בלי גריד: הצמדה עדינה לאנכי/אופקי; עם גריד: הגריד עושה זאת לבד (אלכסונים מותרים)
+  if(SET.gridSnap===false){ const t=10/view.s; if(Math.abs(pos.y-a.y)<t) pos.y=a.y; else if(Math.abs(pos.x-a.x)<t) pos.x=a.x; }
+  const hit = nearNode(pos); if(hit) return {x:hit.x,y:hit.y};
+  return gridPt(pos);
 }
 function getOrAddNode(w){
   const hit = nearNode(w); if(hit) return hit.id;
@@ -1089,11 +1079,10 @@ function addWall(a,bRaw){
   const letter = SET.tool_wallLetters ? nextWallLetter() : ('#'+(DOC.data.walls.length+1));
   const wl = {id:letter, from:ai, to:bi, length:null, condition:'unknown', photos:[], _round:activeRound};
   DOC.data.walls.push(wl);
-  scheduleSave(); runChecksSoon();
-  const openDim = DOC.data.mode==='structured' ? SET.dimAfterLineStructured : SET.dimAfterLineFree;
-  if(openDim) openWallSheet(wl.id);
+  scheduleSave(); draw();
+  openDimBox(wl);
 }
-function nearestWallToPoint(w){
+function nearestWallToPoint(w, tol){
   let best=null, bd=1e9;
   for(const wl of DOC.data.walls){
     const a=nodePos(wl.from), b=nodePos(wl.to);
@@ -1102,27 +1091,70 @@ function nearestWallToPoint(w){
     const d=Math.hypot(w.x-(a.x+dx*t), w.y-(a.y+dy*t));
     if(d<bd){bd=d;best=wl;}
   }
-  return bd<(60/view.s) ? best : null;
+  return bd<(tol||60/view.s) ? best : null;
 }
+function cmToUnit(cm){ return SET.units==='mm'? Math.round(cm*100)/10 : Math.round(cm*10)/10; }
+function unitToCm(v){ const n=parseFloat(v); if(!isFinite(n)) return null; return SET.units==='mm'? n/10 : n; }
+
+/* ---------- חלונית-מידה ליד הקו + קנה-מידה (עידן 16.9) ---------- */
+let dimWall = null;
+function wallPx(wl){ const a=nodePos(wl.from), b=nodePos(wl.to); return Math.hypot(b.x-a.x,b.y-a.y)||1; }
+function wallCm(wl){
+  if(wl.length && wl.length.cm!=null) return {cm:wl.length.cm, derived:false};
+  const sc = DOC.data.scale_cm_per_px;
+  if(sc) return {cm: Math.round(wallPx(wl)*sc*2)/2, derived:true};
+  return null;
+}
+function openDimBox(wl){
+  dimWall = wl;
+  const info = wallCm(wl);
+  $('dimVal').value = info ? cmToUnit(info.cm) : '';
+  positionDimBox();
+  $('dimBox').classList.add('open');
+  setTimeout(()=>{ $('dimVal').focus({preventScroll:true}); $('dimVal').select(); }, 30);
+}
+function positionDimBox(){
+  if(!dimWall) return;
+  const a=nodePos(dimWall.from), b=nodePos(dimWall.to), r=cv.getBoundingClientRect();
+  const mx=((a.x+b.x)/2)*view.s+view.ox, my=((a.y+b.y)/2)*view.s+view.oy;
+  const box=$('dimBox');
+  box.style.left = Math.max(4, Math.min(r.width-196, mx-95))+'px';
+  box.style.top  = Math.max(4, Math.min(r.height-56, my+16))+'px';
+}
+function closeDimBox(){ if(!dimWall) return; $('dimBox').classList.remove('open'); dimWall=null; }
+function applyWallLength(wl, cm, raw){
+  const px = wallPx(wl);
+  if(!DOC.data.scale_cm_per_px){
+    DOC.data.scale_cm_per_px = cm/px;      // המידה הראשונה קובעת את קנה-המידה של הדף
+    toast('קנה-המידה נקבע לפי קיר '+wl.id+'. מעכשיו כל קו מקבל מידה');
+  } else {
+    const want = cm/DOC.data.scale_cm_per_px;
+    if(Math.abs(want-px) > 0.5){          // ההתחלה נשארת, הקצה זז לאורך הנכון
+      const a=nodePos(wl.from), bN=DOC.data.nodes.find(n=>n.id===wl.to);
+      const ux=(bN.x-a.x)/px, uy=(bN.y-a.y)/px;
+      bN.x = Math.round((a.x+ux*want)*10)/10; bN.y = Math.round((a.y+uy*want)*10)/10;
+    }
+  }
+  wl.length = {cm, status:'measured', source:'typed', raw, round:activeRound};
+}
+function saveDim(){
+  if(!dimWall) return;
+  const raw = $('dimVal').value.trim();
+  const cm = unitToCm(raw.replace(/[^\d.]/g,''));
+  if(cm==null || cm<=0){ closeDimBox(); return; }
+  pushHistory();
+  applyWallLength(dimWall, cm, raw);
+  closeDimBox(); scheduleSave(); draw();
+}
+$('dimOk').onclick = saveDim;
+$('dimVal').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); saveDim(); } });
+$('dimMore').onclick = ()=>{ const wl=dimWall; closeDimBox(); if(wl) openWallSheet(wl.id); };
 
 /* ---------- בחירה (הקשה) ---------- */
 function hitTest(w){
-  // טקסט
   const tn = hitTestText(w); if(tn) return openTextSheet(tn);
-  // חותמות
-  for(const el of DOC.data.elements){ if(el.at && Math.hypot(el.at[0]-w.x, el.at[1]-w.y) < 16/view.s) return openStampSheet(el._id); }
-  // גבהים
-  for(const hh of DOC.data.heights){ if(hh.at && Math.hypot(hh.at[0]-w.x, hh.at[1]-w.y) < 16/view.s) return openHeightSheet(hh._id); }
-  // קירות
-  const tol=18/view.s; let best=null,bd=tol;
-  for(const wl of DOC.data.walls){
-    const a=nodePos(wl.from), b=nodePos(wl.to);
-    const dx=b.x-a.x, dy=b.y-a.y, L=dx*dx+dy*dy||1;
-    let t=((w.x-a.x)*dx+(w.y-a.y)*dy)/L; t=Math.max(0,Math.min(1,t));
-    const d=Math.hypot(w.x-(a.x+dx*t), w.y-(a.y+dy*t));
-    if(d<bd){bd=d;best=wl;}
-  }
-  if(best) openWallSheet(best.id);
+  const hh = hitTestHeight(w); if(hh) return openHeightSheet(hh._id);
+  const wl = nearestWallToPoint(w, 18/view.s); if(wl) openDimBox(wl);
 }
 
 /* ---------- חלונית קיר ---------- */
@@ -1142,9 +1174,8 @@ $('wSave').onclick = ()=>{
   if(!curWall) return;
   pushHistory();
   const raw = ($('wLen').value||'').trim();
-  const v = parseFloat(raw.replace(/[^\d.]/g,''));
-  const cm = isFinite(v) ? (SET.units==='mm'? v/10 : v) : null;
-  curWall.length = cm!=null ? {cm, status:'measured', source:'typed', confidence:null, raw, round:activeRound} : null;
+  const cm = unitToCm(raw.replace(/[^\d.]/g,''));
+  if(cm!=null && cm>0) applyWallLength(curWall, cm, raw); else curWall.length = null;
   const segs = ($('wSegs').value||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>({cm:parseFloat(s), status:'measured', source:'typed'}));
   curWall.segments = segs.length ? segs : undefined;
   curWall.note = $('wNote').value.trim();
@@ -1168,73 +1199,6 @@ $('wReturn').onclick = ()=>{
 $('wCrooked').onclick = ()=>{ if(!curWall) return; curWall.condition = curWall.condition==='crooked' ? 'unknown' : 'crooked'; toast(curWall.condition==='crooked'?'סומן כקיר עקום':'בוטל'); };
 $('wPhoto').onclick = ()=>{ if(!curWall) return; pickWallForPhoto(curWall.id); };
 $('wMic').onclick = ()=> dictateInto('wLen', 'wNote');
-
-/* ---------- חותמת אלמנט ---------- */
-let curEl=null;
-function placeStamp(w){
-  pushHistory();
-  const nearWall = nearestWallToPoint(w);
-  const el = {_id:uid(), type:stampType, wall: nearWall?nearWall.id:null, at:[Math.round(w.x*10)/10,Math.round(w.y*10)/10],
-    from_corner:null, height:null, width:null, opening_height:null, swing: (stampType==='door')?'unknown':undefined, note:'', _round:activeRound};
-  if(nearWall){
-    const a = nodePos(nearWall.from);
-    el.from_corner = {cm: Math.round(Math.hypot(w.x-a.x,w.y-a.y)*10)/10, status:'derived', source:'computed', round:activeRound};
-  }
-  DOC.data.elements.push(el);
-  scheduleSave(); draw(); runChecksSoon();
-  openStampSheet(el._id);
-}
-function openStampSheet(id){
-  curEl = DOC.data.elements.find(e=>e._id===id); if(!curEl) return;
-  $('sTitle').textContent = (STAMP_LABEL[curEl.type]||curEl.type) + (curEl.wall? ' · קיר '+curEl.wall : '');
-  const unit = SET.units==='mm'?'מ״מ':'ס״מ';
-  $('sCornerLbl').textContent = 'מרחק מפינה ('+unit+')';
-  $('sCorner').value = curEl.from_corner && curEl.from_corner.cm!=null ? cmToUnit(curEl.from_corner.cm) : '';
-  $('sHeight').value = curEl.height && curEl.height.cm!=null ? cmToUnit(curEl.height.cm) : '';
-  $('sNote').value = curEl.note||'';
-  const extra = $('sExtra'); extra.innerHTML='';
-  if(curEl.type==='window' || curEl.type==='door'){
-    extra.innerHTML = `
-      <div class="field"><label>רוחב (${unit})</label><input id="sWidth" inputmode="decimal"></div>
-      <div class="field"><label>גובה פתח (${unit})</label><input id="sOpenH" inputmode="decimal"></div>`;
-    $('sWidth').value = curEl.width && curEl.width.cm!=null ? cmToUnit(curEl.width.cm) : '';
-    $('sOpenH').value = curEl.opening_height && curEl.opening_height.cm!=null ? cmToUnit(curEl.opening_height.cm) : '';
-    if(curEl.type==='door'){
-      extra.innerHTML += `<div class="field"><label>כיוון פתיחה</label>
-        <select id="sSwing"><option value="unknown">לא צוין</option><option value="left">שמאל</option><option value="right">ימין</option><option value="sliding">הזזה</option><option value="none">ללא</option></select></div>`;
-      $('sSwing').value = curEl.swing||'unknown';
-    }
-  }
-  $('sheetStamp').classList.add('open');
-}
-$('sClose').onclick = ()=> $('sheetStamp').classList.remove('open');
-function cmToUnit(cm){ return SET.units==='mm'? Math.round(cm*100)/10 : Math.round(cm*10)/10; }
-function unitToCm(v){ const n=parseFloat(v); if(!isFinite(n)) return null; return SET.units==='mm'? n/10 : n; }
-$('sSave').onclick = ()=>{
-  if(!curEl) return;
-  pushHistory();
-  const mk = (raw)=> raw!=='' ? {cm:unitToCm(raw), status:'measured', source:'typed', raw, round:activeRound} : null;
-  curEl.from_corner = mk($('sCorner').value);
-  curEl.height = mk($('sHeight').value);
-  if($('sWidth')) curEl.width = mk($('sWidth').value);
-  if($('sOpenH')) curEl.opening_height = mk($('sOpenH').value);
-  if($('sSwing')) curEl.swing = $('sSwing').value;
-  curEl.note = $('sNote').value.trim();
-  $('sheetStamp').classList.remove('open');
-  scheduleSave(); draw(); runChecksSoon();
-};
-$('sDel').onclick = ()=>{
-  if(!curEl) return; pushHistory();
-  DOC.data.elements = DOC.data.elements.filter(e=>e!==curEl);
-  $('sheetStamp').classList.remove('open'); scheduleSave(); draw(); runChecksSoon();
-};
-$('sReturn').onclick = ()=>{
-  if(!curEl) return;
-  curEl.height = {cm:null, status:'not_measured_return', round:activeRound};
-  $('sheetStamp').classList.remove('open'); scheduleSave(); runChecksSoon(); toast('סומן לחזרה');
-};
-$('sMic1').onclick = ()=> dictateInto('sCorner', null);
-$('sMic2').onclick = ()=> dictateInto('sHeight', null);
 
 /* ---------- H= גובה נקודתי ---------- */
 let curHeight=null;
@@ -1323,13 +1287,9 @@ function fit(){
 }
 
 /* =========================================================
-   בדיקות בזמן אמת R1–R8
+   בדיקות R1–R8 — רצות רק ב„סיים ושלח” (עידן 16.9: בלי בדיקות חיות בזמן הציור)
    ========================================================= */
-let checkQueue = [];
-let dismissedKeys = new Set();
-function checkKey(rule,target){ return rule+'|'+(target||''); }
-
-function runChecksSoon(){ clearTimeout(runChecksSoon._t); runChecksSoon._t = setTimeout(runChecks, 400); }
+function runChecksSoon(){ /* הושבת: אין בדיקות חיות */ }
 function runChecks(){
   if(!DOC) return;
   const d = DOC.data;
@@ -1390,38 +1350,14 @@ function runChecks(){
     if(rets.length) found.push({rule:'R8', message:'ברשימת החזרה: '+rets.join(', '), target:null});
   }
 
-  checkQueue = found.filter(f=>!dismissedKeys.has(checkKey(f.rule,f.target)));
-  d.checks = found.map(f=>({rule:f.rule, message:f.message, target:f.target, state: dismissedKeys.has(checkKey(f.rule,f.target))?'dismissed':'open'}));
-  scheduleSave();
-  showNextCheck();
+  d.checks = found.map(f=>({rule:f.rule, message:f.message, target:f.target, state:'open'}));
 }
-let curCheck=null;
-function showNextCheck(){
-  if(!checkQueue.length){ $('checkbar').classList.remove('open'); return; }
-  curCheck = checkQueue[0];
-  $('checkMsg').textContent = curCheck.message;
-  $('checkbar').classList.add('open');
-}
-$('bCheckReturn').onclick = ()=>{
-  if(!curCheck) return;
-  dismissedKeys.add(checkKey(curCheck.rule, curCheck.target));
-  const c = DOC.data.checks.find(c=>c.rule===curCheck.rule && c.target===curCheck.target);
-  if(c) c.state='return_later';
-  checkQueue.shift(); scheduleSave(); showNextCheck();
-};
-$('bCheckDismiss').onclick = ()=>{
-  if(!curCheck) return;
-  dismissedKeys.add(checkKey(curCheck.rule, curCheck.target));
-  const c = DOC.data.checks.find(c=>c.rule===curCheck.rule && c.target===curCheck.target);
-  if(c) c.state='dismissed';
-  checkQueue.shift(); scheduleSave(); showNextCheck();
-};
 
 /* =========================================================
    סיים ושלח
    ========================================================= */
 $('bClose2').onclick = ()=>{
-  flushSave();
+  closeDimBox(); flushSave(); runChecks();
   renderCloseScreen();
   showScreen('screenClose');
 };
@@ -1444,8 +1380,8 @@ function sanitizeFile(s){ return (s||'').replace(/[\\/:*?"<>|]/g,'').trim().repl
 async function buildExport(){
   const d = DOC.data;
   d.settings_snapshot = {...SET};
-  const jsonName = sanitizeFile(d.header.client)+'_'+sanitizeFile(d.header.space)+'_'+d.header.date+'.json';
-  const pngName = sanitizeFile(d.header.client)+'_'+sanitizeFile(d.header.space)+'_'+d.header.date+'.png';
+  const base = sanitizeFile(docTitle(d.header))+'_'+d.header.date;
+  const jsonName = base+'.json', pngName = base+'.png';
   // JSON: הסרת שדות פנימיים (מתחילים ב-_, כמו _id/_round/_mid/_photoId) לצורך פלט נקי לפי הסכימה
   const clean = JSON.parse(JSON.stringify(d, (k,v)=> (k.startsWith && k.startsWith('_')) ? undefined : v));
   const jsonBlob = new Blob([JSON.stringify(clean,null,1)], {type:'application/json'});
@@ -1462,11 +1398,11 @@ function renderExportPNG(){
     c.fillStyle='#FFFFFF'; c.fillRect(0,0,w,h);
     c.fillStyle='#23282D'; c.font='700 20px Heebo, system-ui, sans-serif'; c.textAlign='right'; c.direction='rtl';
     const d = DOC.data;
-    c.fillText(`${d.header.client}  ${d.header.space}  ${d.header.date}`, w-24, 30);
+    c.fillText(`${docTitle(d.header)}  ${d.header.date}`, w-24, 30);
     drawScene(c, {ox:pad-b.x0, oy:pad-b.y0+titleH, s:1}, w, h-legendH, {grid:false, bg:'transparent'});
     // מקרא
     c.font='400 12px Heebo, system-ui, sans-serif'; c.fillStyle='#555'; c.textAlign='right';
-    c.fillText('שקע · מתג · מים · ניקוז · גז · מזגן · לוח · קורה · חלון · דלת · H= גובה נקודתי', w-24, h-8);
+    c.fillText('H= גובה נקודתי (השפיץ = הנקודה הנמדדת) · מידות בס״מ' + (d.scale_cm_per_px ? ' · אפור = מחושב מקנה-המידה' : ''), w-24, h-8);
     off.toBlob(bl=> resolve(bl), 'image/png');
   });
 }
