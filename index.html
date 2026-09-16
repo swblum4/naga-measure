@@ -11,6 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="jspdf.umd.min.js" defer></script>
+<script src="heebo-font.js" defer></script>
 <style>
   :root{
     --paper:#F5F4F1; --grid:#D9DEE3; --ink:#23282D; --slate:#2B3138; --slate-2:#3B434C;
@@ -159,7 +161,7 @@
   <div class="brandhead">
     <h1>מדידות</h1>
     <p>ציור חופשי או לפי רשימה, בכל מכשיר, בלי הרשמה</p>
-    <p style="font-size:11px;color:#7C858E">גרסה 16.9.2026 ד · תמונה על הדף</p>
+    <p style="font-size:11px;color:#7C858E">גרסה 16.9.2026 ה · PDF וקטורי</p>
   </div>
   <div class="card">
     <button class="go big" id="bNew">מדידה חדשה</button>
@@ -340,11 +342,12 @@
   </div>
   <div class="card">
     <button class="go big" id="bExportShare">שליחה בוואטסאפ / דרופבוקס</button>
-    <div class="hint">שולח שתי קבצים: תמונה (PNG) וקובץ נתונים (JSON).</div>
+    <div class="hint">שולח שלושה קבצים: PDF, תמונה (PNG) וקובץ נתונים (JSON).</div>
   </div>
   <div class="card" id="fallbackLinks" hidden>
     <b>שמירה ידנית</b>
     <div class="hint">המכשיר לא תומך בשיתוף קבצים ישיר. לחיצה ארוכה על הקישור שומרת אותו.</div>
+    <div class="row"><a id="lnkPdf" class="go" style="display:block;text-align:center;flex:1;text-decoration:none;padding:11px" download>PDF</a></div>
     <div class="row"><a id="lnkPng" class="go" style="display:block;text-align:center;flex:1;text-decoration:none;padding:11px" download>תמונה PNG</a></div>
     <div class="row"><a id="lnkJson" class="go" style="display:block;text-align:center;flex:1;text-decoration:none;padding:11px" download>קובץ JSON</a></div>
   </div>
@@ -1373,9 +1376,10 @@ function bbox(){
 }
 function fit(){
   const b = bbox(); const r = cv.getBoundingClientRect();
+  if(!r.width || !r.height) return;                 // הקנבס עוד לא נפרס (לשונית מוסתרת / סיבוב מסך) — resize() יצייר אחר-כך
   if(!b){ view={ox:r.width/2, oy:r.height/2, s:1}; draw(); return; }
   const pad=70;
-  view.s = Math.min((r.width-pad*2)/b.w, (r.height-pad*2)/b.h, 4) || 1;
+  view.s = Math.max(0.05, Math.min((r.width-pad*2)/b.w, (r.height-pad*2)/b.h, 4)) || 1;
   view.ox = r.width/2-(b.x0+b.w/2)*view.s;
   view.oy = r.height/2-(b.y0+b.h/2)*view.s;
   draw();
@@ -1481,7 +1485,96 @@ async function buildExport(){
   const clean = JSON.parse(JSON.stringify(d, (k,v)=> (k.startsWith && k.startsWith('_')) ? undefined : v));
   const jsonBlob = new Blob([JSON.stringify(clean,null,1)], {type:'application/json'});
   const pngBlob = await renderExportPNG();
-  return {jsonBlob, pngBlob, jsonName, pngName};
+  let pdfBlob = null;
+  try{ pdfBlob = renderExportPDF(); }catch(err){ console.error('PDF', err); toast('ה-PDF לא נוצר, נשלחים PNG ו-JSON'); }
+  return {jsonBlob, pngBlob, pdfBlob, jsonName, pngName, pdfName: base+'.pdf'};
+}
+
+/* ---------- PDF וקטורי: jsPDF מקומי + Heebo מוטמע (עידן 16.9) ---------- */
+const APP_VERSION = '16.9.2026 ה';
+function visualRTL(s, mirror=true){
+  // jsPDF מצייר גליפים משמאל לימין בסדר לוגי, בלי בידי. פסקה בכיוון RTL:
+  // H = עברית · L = לטינית/ספרות · ניטרל = L רק אם כלוא בין L ל-L, אחרת H.
+  // הופכים את סדר הריצות, ובריצות H גם את סדר התווים (עם שיקוף סוגריים).
+  const ch=[...String(s)];
+  const t=ch.map(c=> /[֐-׿]/.test(c) ? 'H' : /[A-Za-z0-9]/.test(c) ? 'L' : 'N');
+  for(let i=0;i<t.length;i++){
+    if(t[i]!=='N') continue;
+    let a=i-1; while(a>=0 && t[a]==='N') a--;
+    let b=i+1; while(b<t.length && t[b]==='N') b++;
+    const A = a>=0 ? t[a] : 'H', B = b<t.length ? t[b] : 'H';
+    t[i] = (A==='L' && B==='L') ? 'L' : 'H';
+  }
+  const runs=[];
+  for(let i=0;i<ch.length;i++){ if(runs.length && runs[runs.length-1].t===t[i]) runs[runs.length-1].s+=ch[i]; else runs.push({t:t[i], s:ch[i]}); }
+  const MIRROR={'(':')',')':'(','[':']',']':'['};
+  return runs.reverse().map(r=> r.t==='H' ? [...r.s].reverse().map(c=> mirror ? (MIRROR[c]||c) : c).join('') : r.s).join('');
+}
+function renderExportPDF(){
+  const J = window.jspdf && window.jspdf.jsPDF;
+  if(!J || !window.HEEBO_TTF_B64) return null;
+  const d = DOC.data, b = bbox() || {x0:0,y0:0,x1:200,y1:200,w:200,h:200};
+  const doc = new J({orientation:'landscape', unit:'mm', format:'a4', compress:true});
+  doc.addFileToVFS('Heebo.ttf', window.HEEBO_TTF_B64); doc.addFont('Heebo.ttf','Heebo','normal'); doc.setFont('Heebo');
+  const PW=297, PH=210, M=12, titleH=12, legendH=8;
+  const sc = Math.min((PW-2*M)/b.w, (PH-2*M-titleH-legendH)/b.h);
+  const X = wx => M + (PW-2*M - b.w*sc)/2 + (wx-b.x0)*sc;              // הציור ממורכז בדף
+  const Y = wy => M + titleH + (PH-2*M-titleH-legendH - b.h*sc)/2 + (wy-b.y0)*sc;
+  // למנוע-הבידי של jsPDF אין אופציית-כיבוי, והוא מסדר מחדש כל מחרוזת עם אות עברית (נמדד 16.9).
+  // עוקפים: הסדר הוויזואלי מחושב אצלנו (visualRTL), וכל גליף מצויר בנפרד — לריצה של תו אחד אין מה להפוך.
+  const W = txt => [...visualRTL(txt)].reduce((a,c)=> a+doc.getTextWidth(c), 0);
+  const T = (txt,x,y,opt={})=>{
+    const chars=[...visualRTL(txt)], ws=chars.map(c=>doc.getTextWidth(c)), total=ws.reduce((a,b)=>a+b,0);
+    let cx = opt.align==='right' ? x-total : opt.align==='center' ? x-total/2 : x;
+    chars.forEach((c,i)=>{ if(c!==' ') doc.text(c, cx, y); cx+=ws[i]; });
+    return total;
+  };
+  // כותרת
+  doc.setFontSize(14); doc.setTextColor('#23282D'); T(docTitle(d.header)+'   '+d.header.date, PW-M, M+6, {align:'right'});
+  doc.setFontSize(8); doc.setTextColor('#7C858E'); T('מדידות · גרסה '+APP_VERSION, M, M+6, {align:'left'});
+  // תמונות (עם שקיפות)
+  for(const p of d.photos){
+    const im = IMG.get(p._photoId); if(!p.at || !im) continue;
+    doc.saveGraphicsState(); doc.setGState(new doc.GState({opacity: p.opacity==null ? 0.6 : p.opacity}));
+    doc.addImage(im, 'JPEG', X(p.at[0]), Y(p.at[1]), p.w*sc, p.h*sc);
+    doc.restoreGraphicsState();
+  }
+  // דיו חופשי
+  doc.setLineCap('round'); doc.setLineJoin('round'); doc.setLineWidth(0.5);
+  for(const st of d.ink){
+    if(!st.points || st.points.length<2) continue;
+    doc.setDrawColor(st.color||'#23282D');
+    for(let i=1;i<st.points.length;i++) doc.line(X(st.points[i-1][0]),Y(st.points[i-1][1]),X(st.points[i][0]),Y(st.points[i][1]));
+  }
+  // קירות + תוויות
+  doc.setLineWidth(0.7);
+  for(const wl of d.walls){
+    const a=nodePos(wl.from), bb=nodePos(wl.to);
+    doc.setDrawColor(wl._round>1 ? '#7B4FA3' : '#23282D'); doc.line(X(a.x),Y(a.y),X(bb.x),Y(bb.y));
+    const info=wallCm(wl), txt=(wl.id||'')+(info ? '  '+fmtNum(info.cm) : '');
+    const mx=(a.x+bb.x)/2, my=(a.y+bb.y)/2, L=Math.hypot(bb.x-a.x,bb.y-a.y)||1;
+    let nx=-(bb.y-a.y)/L, ny=(bb.x-a.x)/L; if(ny>0){nx=-nx;ny=-ny;}
+    const lx=X(mx)+nx*5, ly=Y(my)+ny*5;
+    doc.setFontSize(10); const tw=W(txt);
+    doc.setFillColor('#FFFFFF'); doc.roundedRect(lx-tw/2-1.5, ly-3.2, tw+3, 5.2, 1, 1, 'F');
+    doc.setTextColor(info ? (info.derived ? '#7C858E' : '#14624F') : '#9AA2AA'); T(txt, lx, ly+1.3, {align:'center'});
+  }
+  // צמתים
+  doc.setFillColor('#23282D');
+  for(const n of d.nodes){ if(!d.walls.some(w=>w.from===n.id||w.to===n.id)) continue; doc.circle(X(n.x),Y(n.y),0.8,'F'); }
+  // H= (השפיץ למטה = הנקודה הנמדדת)
+  for(const hh of d.heights){
+    if(!hh.at) continue; const x=X(hh.at[0]), y=Y(hh.at[1]);
+    doc.setFillColor(hh._round>1 ? '#7B4FA3' : '#2A5C9A'); doc.triangle(x,y, x+2.4,y-4.2, x-2.4,y-4.2, 'F');
+    doc.setFontSize(9); doc.setTextColor('#2A5C9A'); T('H='+(hh.value&&hh.value.cm!=null ? fmtNum(hh.value.cm) : '?'), x, y-5.5, {align:'center'});
+  }
+  // טקסט חופשי
+  doc.setFontSize(10);
+  for(const n of d.notes){ if(!n.at) continue; doc.setTextColor(n.color||'#2A5C9A'); T(n.text, X(n.at[0]), Y(n.at[1])+1.2, {align:'right'}); }
+  // מקרא
+  doc.setFontSize(8); doc.setTextColor('#555555');
+  T('H= גובה נקודתי (השפיץ = הנקודה הנמדדת) · מידות בס״מ' + (d.scale_cm_per_px ? ' · אפור = מחושב מקנה-המידה' : ''), PW-M, PH-M+2, {align:'right'});
+  return doc.output('blob');
 }
 function renderExportPNG(){
   return new Promise(resolve=>{
@@ -1502,16 +1595,19 @@ function renderExportPNG(){
   });
 }
 $('bExportShare').onclick = async ()=>{
-  const {jsonBlob, pngBlob, jsonName, pngName} = await buildExport();
+  const {jsonBlob, pngBlob, pdfBlob, jsonName, pngName, pdfName} = await buildExport();
   const files = [
     new File([pngBlob], pngName, {type:'image/png'}),
     new File([jsonBlob], jsonName, {type:'application/json'}),
   ];
+  if(pdfBlob) files.unshift(new File([pdfBlob], pdfName, {type:'application/pdf'}));
   if(navigator.canShare && navigator.canShare({files})){
     try{ await navigator.share({files, title: DOC.data.header.space, text: DOC.data.header.client+' '+DOC.data.header.space}); toast('נשלח'); return; }
     catch(e){ /* בוטל או נכשל — נופל לשמירה ידנית */ }
   }
   $('fallbackLinks').hidden=false;
+  $('lnkPdf').parentElement.hidden = !pdfBlob;
+  if(pdfBlob){ $('lnkPdf').href = URL.createObjectURL(pdfBlob); $('lnkPdf').download = pdfName; }
   $('lnkPng').href = URL.createObjectURL(pngBlob); $('lnkPng').download = pngName;
   $('lnkJson').href = URL.createObjectURL(jsonBlob); $('lnkJson').download = jsonName;
   toast('שיתוף קבצים לא נתמך כאן — שמירה ידנית למטה');
