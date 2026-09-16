@@ -2,7 +2,7 @@
 // לקח 16.9.2026: cache-first עם שם קבוע הגיש גרסה ישנה לנצח. לכן:
 //   1. index.html (וניווט) = רשת-קודם, מטמון רק כשאין רשת.
 //   2. שם-המטמון משתנה בכל פרסום ⇐ המטמון הישן נמחק ב-activate.
-const CACHE = 'miki-measure-2026-09-16e';
+const CACHE = 'miki-measure-2026-09-16g';
 const CORE = [
   './',
   './index.html',
@@ -39,7 +39,8 @@ self.addEventListener('fetch', (e) => {
   if (isApp) {
     // רשת-קודם: כל פתיחה עם אינטרנט מביאה את הגרסה העדכנית; בלי אינטרנט — מהמטמון
     e.respondWith(
-      fetch(e.request).then((res) => {
+      // קליטה גרועה בשטח: אם הרשת לא ענתה תוך 3 שנ׳ — מגישים מהמטמון (ולא מסך לבן)
+      Promise.race([fetch(e.request), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))]).then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put('./index.html', copy));
         return res;
