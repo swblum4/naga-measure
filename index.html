@@ -200,9 +200,11 @@
   </header>
   <div id="toolbar">
     <button id="tInk" class="on">עט</button>
+    <button id="tHighlighter">סימנונית</button>
     <span class="swatch" style="background:#23282D" data-c="#23282D"></span>
     <span class="swatch" style="background:#B0392E" data-c="#B0392E"></span>
     <span class="swatch" style="background:#2A5C9A" data-c="#2A5C9A"></span>
+    <span class="swatch" style="background:#F4D03F" data-c="#F4D03F"></span>
     <button id="tWall">קו קיר</button>
     <button id="tStamp">חותמת</button>
     <button id="tHeight">H=</button>
@@ -530,6 +532,7 @@ $('bSetDone').onclick = ()=> showScreen(DOC?'screenMain':'screenStart');
 
 function applyToolVisibility(){
   $('tInk').closest('#toolbar') && ($('tInk').style.display = SET.tool_pen?'':'none');
+  $('tHighlighter').style.display = SET.tool_pen?'':'none';
   $('tWall').style.display = SET.tool_lineSnap?'':'none';
   $('tStamp').style.display = SET.tool_stamps?'':'none';
   $('tHeight').style.display = SET.tool_height?'':'none';
@@ -538,7 +541,8 @@ function applyToolVisibility(){
 }
 
 /* ================= מסך עבודה: מצב וכלים ================= */
-let tool = 'ink';           // ink | wall | stamp | height
+let tool = 'ink';           // ink | highlighter | wall | stamp | height
+let drawMode = 'pen';       // pen | highlighter
 let stampType = 'outlet';
 let inkColor = '#23282D';
 
@@ -584,13 +588,16 @@ function stLabel(s){ return {open:'פתוח',done:'בוצע',return_later:'לח�
 /* ---------- כלים ---------- */
 function setTool(t){
   tool = t;
+  const isDraw = t==='ink' || t==='highlighter';
   $('tInk').classList.toggle('on', t==='ink');
+  $('tHighlighter').classList.toggle('on', t==='highlighter');
   $('tWall').classList.toggle('on', t==='wall');
   $('tStamp').classList.toggle('on', t==='stamp');
   $('tHeight').classList.toggle('on', t==='height');
   $('stampPicker').classList.remove('open');
 }
-$('tInk').onclick = ()=> setTool('ink');
+$('tInk').onclick = ()=> { drawMode='pen'; setTool('ink'); };
+$('tHighlighter').onclick = ()=> { drawMode='highlighter'; setTool('highlighter'); };
 $('tWall').onclick = ()=> setTool('wall');
 $('tHeight').onclick = ()=> setTool('height');
 $('tStamp').onclick = ()=>{
@@ -707,15 +714,18 @@ function drawScene(c, v, w, h, opts={}){
     }
   }
 
-  // דיו חופשי
+  // דיו חופשי וסימנונית
   c.lineCap='round'; c.lineJoin='round';
   for(const s of DOC.data.ink){
     if(!s.points || s.points.length<2) continue;
-    c.strokeStyle = s.color || '#23282D'; c.lineWidth = 2.6/v.s;
+    const mode = s.mode || 'pen';
+    c.globalAlpha = mode==='highlighter' ? 0.3 : 1;
+    c.strokeStyle = s.color || '#23282D'; c.lineWidth = mode==='highlighter' ? 5/v.s : 2.6/v.s;
     c.beginPath(); c.moveTo(s.points[0][0], s.points[0][1]);
     for(const p of s.points.slice(1)) c.lineTo(p[0],p[1]);
     c.stroke();
   }
+  c.globalAlpha = 1;
 
   // קירות
   c.strokeStyle = '#23282D'; c.lineWidth = 3/v.s;
@@ -803,10 +813,12 @@ function draw(){
     ctx.setLineDash([]);
   }
   if(previewStroke && previewStroke.length>1){
-    ctx.strokeStyle = roundColor(); ctx.lineWidth=2.6/view.s; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.globalAlpha = drawMode==='highlighter' ? 0.3 : 1;
+    ctx.strokeStyle = roundColor(); ctx.lineWidth = drawMode==='highlighter' ? 5/view.s : 2.6/view.s; ctx.lineCap='round'; ctx.lineJoin='round';
     ctx.beginPath(); ctx.moveTo(previewStroke[0][0],previewStroke[0][1]);
     for(const p of previewStroke.slice(1)) ctx.lineTo(p[0],p[1]);
     ctx.stroke();
+    ctx.globalAlpha = 1;
   }
   ctx.restore();
 }
@@ -825,7 +837,7 @@ cv.addEventListener('pointerdown', e=>{
       panOne = {x:e.clientX,y:e.clientY, ox:view.ox, oy:view.oy}; start=null; preview=null; return;
     }
     const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
-    if(tool==='ink'){
+    if(tool==='ink' || tool==='highlighter'){
       drawingInk = true; previewStroke = [[w.x,w.y]]; moved=0; start=w;
     } else if(tool==='wall'){
       start = w; moved=0; preview={a:{...w}, b:{...w}};
@@ -877,7 +889,7 @@ function endPtr(e){
     drawingInk=false;
     if(previewStroke && previewStroke.length>2 && moved>6){
       pushHistory();
-      DOC.data.ink.push({color: roundColor(), tool:'pen', points: previewStroke.map(p=>[Math.round(p[0]*10)/10,Math.round(p[1]*10)/10]), near_wall:null, _round:activeRound});
+      DOC.data.ink.push({color: roundColor(), mode: drawMode, tool:'pen', points: previewStroke.map(p=>[Math.round(p[0]*10)/10,Math.round(p[1]*10)/10]), near_wall:null, _round:activeRound});
       scheduleSave(); runChecksSoon();
     } else if(previewStroke && previewStroke.length){
       hitTest(w);
