@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>מדידות</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#2B3138">
+<meta name="theme-color" content="#FFFFFF">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -67,17 +67,35 @@
   .segbtns{display:flex;gap:8px;flex-wrap:wrap}
   .segbtns button{flex:1;min-width:90px}
 
-  header.appbar{background:var(--slate);color:#EDEFF1;flex:0 0 auto;display:flex;gap:6px;align-items:center;
-    padding:8px 10px;overflow-x:auto;scrollbar-width:none;padding-top:max(8px,env(safe-area-inset-top))}
+  /* סרגלים בסגנון Samsung Notes: רקע לבן, אייקונים, כלי פעיל בכחול-בהיר */
+  header.appbar{background:#fff;color:#222;border-bottom:1px solid #E3E6EA;flex:0 0 auto;display:flex;gap:4px;align-items:center;
+    padding:6px 8px;overflow-x:auto;scrollbar-width:none;padding-top:max(6px,env(safe-area-inset-top))}
   header.appbar::-webkit-scrollbar{display:none}
-  .brand{font-weight:700;font-size:14px;letter-spacing:-.2px;margin-inline-end:2px;white-space:nowrap}
-  .brand small{display:block;font-weight:400;font-size:10px;color:#98A2AC;margin-top:-2px}
-  #toolbar{background:var(--slate-2);color:#EDEFF1;flex:0 0 auto;display:flex;gap:6px;align-items:center;
-    padding:7px 10px;overflow-x:auto;scrollbar-width:none}
+  header.appbar button{background:#F1F3F5;color:#222;padding:8px 11px;font-size:13px}
+  header.appbar button.on{background:#E8F0FE;color:#1A73E8}
+  header.appbar button.go{background:var(--yellow);color:#221B00}
+  button.ico{padding:7px;width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+  button.ico svg{width:22px;height:22px}
+  .brand{font-weight:700;font-size:14px;letter-spacing:-.2px;margin-inline-end:2px;white-space:nowrap;flex:1}
+  .brand small{display:block;font-weight:400;font-size:10px;color:#7C858E;margin-top:-2px}
+  #toolbar{background:#fff;color:#333;border-bottom:1px solid #E3E6EA;flex:0 0 auto;display:flex;gap:2px;align-items:center;
+    padding:4px 8px;overflow-x:auto;scrollbar-width:none}
   #toolbar::-webkit-scrollbar{display:none}
-  #toolbar button{padding:9px 12px;font-size:13.5px}
-  .swatch{width:30px;height:30px;border-radius:50%;border:2px solid #fff2;flex:0 0 auto;cursor:pointer}
-  .swatch.on{outline:2px solid var(--yellow);outline-offset:2px}
+  #toolbar button{background:transparent;color:#333;display:inline-flex;flex-direction:column;align-items:center;gap:2px;
+    padding:5px 9px;font-size:10px;line-height:1;border-radius:10px;min-width:50px;flex:0 0 auto}
+  #toolbar button.on{background:#E8F0FE;color:#1A73E8;font-weight:500}
+  svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #toolbar button svg{width:22px;height:22px}
+  .tsep{width:1px;height:30px;background:#E3E6EA;margin:0 5px;flex:0 0 auto}
+  .swatch{width:24px;height:24px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #C9CED4;flex:0 0 auto;cursor:pointer;margin:0 2px}
+  .swatch.on{box-shadow:0 0 0 2.5px #1A73E8}
+  #sideMenu{position:absolute;top:52px;inset-inline-end:8px;background:#fff;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.22);
+    padding:6px;display:none;flex-direction:column;gap:2px;z-index:40;min-width:180px}
+  #sideMenu.open{display:flex}
+  #sideMenu button{background:transparent;color:#222;text-align:start;padding:11px 12px;font-size:14px;border-radius:8px}
+  #sideMenu button:hover{background:#F1F3F5}
+  #sideMenu button.danger{color:#A03127}
+  #screenMain{position:relative}
 
   #stage{flex:1;position:relative;background:var(--paper);min-height:0}
   canvas{display:block;width:100%;height:100%}
@@ -191,24 +209,36 @@
 <!-- ===== מסך עבודה ===== -->
 <div id="screenMain" hidden style="height:100%;display:flex;flex-direction:column">
   <header class="appbar">
-    <button id="bHome">⟵</button>
+    <button id="bHome" class="ico" title="חזרה"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     <div class="brand" id="hdrTitle">—<small id="hdrSub"></small></div>
+    <button id="bUndo" class="ico" title="ביטול"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/><path d="M9 12h7a4 4 0 0 1 0 8h-2"/></svg></button>
+    <button id="bRedo" class="ico" title="חזרה על פעולה"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/><path d="M15 12H8a4 4 0 0 0 0 8h2"/></svg></button>
     <button id="bModeToggle" class="on">ציור חופשי</button>
     <button id="bChecklist">רשימה</button>
-    <button id="bUndo">ביטול</button>
-    <button id="bClose2">סיים ושלח</button>
+    <button id="bClose2" class="go">סיים ושלח</button>
+    <button id="bMenu" class="ico" title="עוד"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/></svg></button>
   </header>
+  <div id="sideMenu">
+    <button id="mSettings">ההגדרות שלי</button>
+    <button id="mFit">מרכוז הציור</button>
+    <button id="mGrid">רשת: מוצגת</button>
+    <button id="mClear" class="danger">מחיקת כל הציור</button>
+  </div>
   <div id="toolbar">
-    <button id="tInk" class="on">עט</button>
-    <button id="tHighlighter">סימנונית</button>
+    <button id="tInk" class="on"><svg viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19z"/><path d="M14 6l4 4"/></svg>עט</button>
+    <button id="tHighlighter"><svg viewBox="0 0 24 24"><path d="M9 15l-4 4h6l2-2"/><path d="M9 15l8-8 2 2-8 8z" fill="currentColor" fill-opacity=".25"/><path d="M4 21h16"/></svg>סימנונית</button>
+    <button id="tEraser"><svg viewBox="0 0 24 24"><path d="M5 15l8-8 6 6-5 5H9z"/><path d="M4 20h16"/></svg>מחק</button>
+    <button id="tText"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v14M9 20h6"/></svg>טקסט</button>
+    <span class="tsep"></span>
     <span class="swatch" style="background:#23282D" data-c="#23282D"></span>
     <span class="swatch" style="background:#B0392E" data-c="#B0392E"></span>
     <span class="swatch" style="background:#2A5C9A" data-c="#2A5C9A"></span>
     <span class="swatch" style="background:#F4D03F" data-c="#F4D03F"></span>
-    <button id="tWall">קו קיר</button>
-    <button id="tStamp">חותמת</button>
-    <button id="tHeight">H=</button>
-    <button id="bCam">מצלמה לקיר</button>
+    <span class="tsep"></span>
+    <button id="tWall"><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><circle cx="5" cy="19" r="1.6" fill="currentColor"/><circle cx="19" cy="5" r="1.6" fill="currentColor"/></svg>קו קיר</button>
+    <button id="tStamp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg>חותמת</button>
+    <button id="tHeight"><svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M6 12h12"/></svg>H=</button>
+    <button id="bCam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3"/></svg>מצלמה</button>
     <input id="fileCam" type="file" accept="image/*" capture="environment" hidden>
   </div>
   <div id="stage">
@@ -283,6 +313,18 @@
         <button class="go" id="hSave" style="flex:1">שמירה</button>
         <button class="ghost" id="hReturn">לא נמדד — לחזור</button>
         <button class="danger" id="hDel">מחיקה</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheetText">
+      <div class="row"><div class="title">טקסט</div><button class="ghost" id="xClose">סגירה</button></div>
+      <div class="row">
+        <div class="field" style="flex:1;margin-bottom:0"><label>מה לכתוב</label><input id="xText" placeholder="למשל: גובה סופי, קיר עקום"></div>
+        <button class="mic" id="xMic">🎤</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="go" id="xSave" style="flex:1">שמירה</button>
+        <button class="danger" id="xDel">מחיקה</button>
       </div>
     </div>
 
@@ -362,7 +404,7 @@ const STAMP_LABEL = Object.fromEntries(STAMP_TYPES);
 /* ---------- הגדרות ---------- */
 const DEFAULT_SETTINGS = {
   units:'cm',
-  tool_pen:true, tool_lineSnap:true, tool_wallLetters:true, tool_stamps:true,
+  tool_pen:true, tool_text:true, showGrid:true, tool_lineSnap:true, tool_wallLetters:true, tool_stamps:true,
   tool_height:true, tool_camera:true, tool_colorRoles:true, tool_dictation:true,
   tool_palmRejection:true, tool_completion:true,
   dimAfterLineFree:false, dimAfterLineStructured:true,
@@ -378,7 +420,7 @@ function loadSettings(){
 function saveSettings(){ localStorage.setItem('miki_measure_settings', JSON.stringify(SET)); }
 
 const TOOL_LABELS = [
-  ['tool_pen','עט חופשי'],['tool_lineSnap','יישור קו לאנכי/אופקי'],['tool_wallLetters','אותיות קיר אוטומטיות'],
+  ['tool_pen','עט חופשי, סימנונית ומחק'],['tool_text','טקסט על הדף'],['tool_lineSnap','יישור קו לאנכי/אופקי'],['tool_wallLetters','אותיות קיר אוטומטיות'],
   ['tool_stamps','חותמות אלמנטים'],['tool_height','כלי H= (גובה נקודתי)'],['tool_camera','מצלמה לקיר'],
   ['tool_colorRoles','צבעי עט'],['tool_dictation','הכתבה (מיקרופון)'],['tool_palmRejection','דחיית כף יד (עט/אצבע)'],
   ['tool_completion','השלמה (סבב 2)'],
@@ -533,6 +575,8 @@ $('bSetDone').onclick = ()=> showScreen(DOC?'screenMain':'screenStart');
 function applyToolVisibility(){
   $('tInk').closest('#toolbar') && ($('tInk').style.display = SET.tool_pen?'':'none');
   $('tHighlighter').style.display = SET.tool_pen?'':'none';
+  $('tEraser').style.display = SET.tool_pen?'':'none';
+  $('tText').style.display = SET.tool_text!==false?'':'none';
   $('tWall').style.display = SET.tool_lineSnap?'':'none';
   $('tStamp').style.display = SET.tool_stamps?'':'none';
   $('tHeight').style.display = SET.tool_height?'':'none';
@@ -588,16 +632,30 @@ function stLabel(s){ return {open:'פתוח',done:'בוצע',return_later:'לח�
 /* ---------- כלים ---------- */
 function setTool(t){
   tool = t;
-  const isDraw = t==='ink' || t==='highlighter';
-  $('tInk').classList.toggle('on', t==='ink');
-  $('tHighlighter').classList.toggle('on', t==='highlighter');
-  $('tWall').classList.toggle('on', t==='wall');
-  $('tStamp').classList.toggle('on', t==='stamp');
-  $('tHeight').classList.toggle('on', t==='height');
+  for(const [id,name] of [['tInk','ink'],['tHighlighter','highlighter'],['tEraser','eraser'],['tText','text'],['tWall','wall'],['tStamp','stamp'],['tHeight','height']])
+    $(id).classList.toggle('on', t===name);
   $('stampPicker').classList.remove('open');
+  $('sideMenu').classList.remove('open');
 }
 $('tInk').onclick = ()=> { drawMode='pen'; setTool('ink'); };
 $('tHighlighter').onclick = ()=> { drawMode='highlighter'; setTool('highlighter'); };
+$('tEraser').onclick = ()=> { setTool('eraser'); toast('העבר את העט על קו כדי למחוק אותו'); };
+$('tText').onclick = ()=> { setTool('text'); toast('הקש על הדף במקום שבו הטקסט יופיע'); };
+
+/* ---------- תפריט צד (⋮) ---------- */
+$('bMenu').onclick = e=>{ e.stopPropagation(); $('sideMenu').classList.toggle('open'); refreshMenuLabels(); };
+document.addEventListener('pointerdown', e=>{ if(!e.target.closest('#sideMenu,#bMenu')) $('sideMenu').classList.remove('open'); });
+function refreshMenuLabels(){ $('mGrid').textContent = 'רשת: ' + (SET.showGrid!==false ? 'מוצגת' : 'מוסתרת'); }
+$('mSettings').onclick = ()=>{ $('sideMenu').classList.remove('open'); renderSettings(); showScreen('screenSettings'); };
+$('mFit').onclick = ()=>{ $('sideMenu').classList.remove('open'); fit(); };
+$('mGrid').onclick = ()=>{ SET.showGrid = !(SET.showGrid!==false); saveSettings(); refreshMenuLabels(); draw(); };
+$('mClear').onclick = ()=>{
+  $('sideMenu').classList.remove('open');
+  if(!confirm('למחוק את כל הציור בדף הזה? אפשר לבטל עם „ביטול”.')) return;
+  pushHistory();
+  Object.assign(DOC.data, {nodes:[], walls:[], heights:[], elements:[], ink:[], notes:[]});
+  scheduleSave(); draw(); runChecksSoon();
+};
 $('tWall').onclick = ()=> setTool('wall');
 $('tHeight').onclick = ()=> setTool('height');
 $('tStamp').onclick = ()=>{
@@ -660,15 +718,21 @@ function downscaleToDataURL(file, maxSide){
    ========================================================= */
 const cv = $('cv'); const ctx = cv.getContext('2d');
 let view = {ox:0, oy:0, s:1};
-let history = [];
+let history = [], redoStack = [];
+function snapshot(){ const d=DOC.data; return JSON.stringify({nodes:d.nodes,walls:d.walls,heights:d.heights,elements:d.elements,ink:d.ink,notes:d.notes}); }
 function pushHistory(){
-  const d = DOC.data;
-  history.push(JSON.stringify({nodes:d.nodes,walls:d.walls,heights:d.heights,elements:d.elements,ink:d.ink}));
+  history.push(snapshot()); redoStack = [];
   if(history.length>40) history.shift();
 }
 $('bUndo').onclick = ()=>{
   const h = history.pop(); if(!h){ toast('אין מה לבטל'); return; }
-  const o = JSON.parse(h); Object.assign(DOC.data, o); scheduleSave(); draw(); runChecksSoon();
+  redoStack.push(snapshot());
+  Object.assign(DOC.data, JSON.parse(h)); scheduleSave(); draw(); runChecksSoon();
+};
+$('bRedo').onclick = ()=>{
+  const h = redoStack.pop(); if(!h){ toast('אין מה לחזור עליו'); return; }
+  history.push(snapshot());
+  Object.assign(DOC.data, JSON.parse(h)); scheduleSave(); draw(); runChecksSoon();
 };
 
 function resize(){
@@ -704,7 +768,7 @@ function drawScene(c, v, w, h, opts={}){
   c.fillRect(0,0,w,h);
   c.translate(v.ox, v.oy); c.scale(v.s, v.s);
 
-  if(opts.grid !== false){
+  if(opts.grid !== false && SET.showGrid !== false){
     const step=25, sp=step*v.s;
     if(sp>9){
       const x0=Math.floor((-v.ox/v.s)/step)*step, y0=Math.floor((-v.oy/v.s)/step)*step;
@@ -746,7 +810,18 @@ function drawScene(c, v, w, h, opts={}){
   for(const el of DOC.data.elements) elementMark(c, v, el);
   // גבהים
   for(const hh of DOC.data.heights) heightMark(c, v, hh);
+  // טקסט חופשי על הדף
+  for(const n of DOC.data.notes) if(n.at) textMark(c, v, n);
 
+  c.restore();
+}
+function textMark(c, v, n){
+  const [x,y]=n.at;
+  c.save(); c.translate(x,y); c.scale(1/v.s,1/v.s);
+  c.font='500 15px Heebo, system-ui, sans-serif'; c.textAlign='right'; c.textBaseline='middle'; c.direction='rtl';
+  const w = c.measureText(n.text).width;
+  c.fillStyle='rgba(245,244,241,.85)'; roundRect(c,-w-6,-11,w+12,22,5); c.fill();
+  c.fillStyle = n.color || '#2A5C9A'; c.fillText(n.text, 0, 0);
   c.restore();
 }
 function fmtNum(cm){ if(cm==null) return ''; return (Math.round(cm*10)/10).toString(); }
@@ -839,6 +914,8 @@ cv.addEventListener('pointerdown', e=>{
     const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
     if(tool==='ink' || tool==='highlighter'){
       drawingInk = true; previewStroke = [[w.x,w.y]]; moved=0; start=w;
+    } else if(tool==='eraser'){
+      erasing = {did:false}; eraseAt(w); start=w; moved=0;
     } else if(tool==='wall'){
       start = w; moved=0; preview={a:{...w}, b:{...w}};
     } else {
@@ -871,6 +948,7 @@ cv.addEventListener('pointermove', e=>{
     previewStroke.push([w.x,w.y]); moved = Math.hypot(w.x-start.x,w.y-start.y)*view.s;
     draw(); return;
   }
+  if(erasing){ eraseAt(toWorld(e.clientX-rect.left, e.clientY-rect.top)); return; }
   if(tool==='wall' && start){
     const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
     moved = Math.hypot(w.x-start.x,w.y-start.y)*view.s;
@@ -896,6 +974,17 @@ function endPtr(e){
     }
     previewStroke=null; start=null; draw(); return;
   }
+  if(erasing){
+    if(erasing.did){ scheduleSave(); runChecksSoon(); }
+    erasing=null; start=null; draw(); return;
+  }
+  if(tool==='text'){
+    if(start && moved<14){
+      const hit = hitTestText(w);
+      if(hit) openTextSheet(hit); else placeText(w);
+    }
+    start=null; draw(); return;
+  }
   if(tool==='wall'){
     preview=null;
     if(start){
@@ -914,7 +1003,64 @@ function endPtr(e){
   start=null;
 }
 cv.addEventListener('pointerup', endPtr);
-cv.addEventListener('pointercancel', e=>{ act.delete(e.pointerId); start=null; preview=null; previewStroke=null; drawingInk=false; draw(); });
+cv.addEventListener('pointercancel', e=>{ act.delete(e.pointerId); start=null; preview=null; previewStroke=null; drawingInk=false; erasing=null; draw(); });
+
+/* ---------- מחק: מוחק קו דיו או טקסט שהעט עובר עליו ---------- */
+let erasing = null;
+function distToSeg(w, a, b){
+  const dx=b[0]-a[0], dy=b[1]-a[1], L=dx*dx+dy*dy||1;
+  let t=((w.x-a[0])*dx+(w.y-a[1])*dy)/L; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(w.x-(a[0]+dx*t), w.y-(a[1]+dy*t));
+}
+function strokeHit(s, w, tol){
+  const p = s.points||[]; if(p.length===1) return Math.hypot(p[0][0]-w.x,p[0][1]-w.y)<tol;
+  for(let i=1;i<p.length;i++) if(distToSeg(w,p[i-1],p[i])<tol) return true;
+  return false;
+}
+function eraseAt(w){
+  const tol = 14/view.s;
+  const ink = DOC.data.ink, notes = DOC.data.notes;
+  const keepInk = ink.filter(s=> !strokeHit(s, w, tol));
+  const keepNotes = notes.filter(n=> !(n.at && Math.hypot(n.at[0]-w.x,n.at[1]-w.y) < 26/view.s));
+  if(keepInk.length===ink.length && keepNotes.length===notes.length) return;
+  if(!erasing.did){ pushHistory(); erasing.did=true; }
+  DOC.data.ink = keepInk; DOC.data.notes = keepNotes; draw();
+}
+
+/* ---------- טקסט חופשי על הדף ---------- */
+let curNote = null;
+function hitTestText(w){
+  return DOC.data.notes.find(n=> n.at && Math.hypot(n.at[0]-w.x, n.at[1]-w.y) < 26/view.s) || null;
+}
+function placeText(w){
+  const nearWall = nearestWallToPoint(w);
+  curNote = {text:'', wall: nearWall?nearWall.id:null, at:[Math.round(w.x*10)/10, Math.round(w.y*10)/10], color: roundColor(), source:'typed', _new:true, _round:activeRound};
+  openTextSheet(curNote);
+}
+function openTextSheet(n){
+  curNote = n;
+  $('xText').value = n.text || '';
+  $('sheetText').classList.add('open');
+  setTimeout(()=>{ $('xText').focus({preventScroll:true}); document.documentElement.scrollTop = document.body.scrollTop = 0; }, 60);
+}
+$('xClose').onclick = ()=>{ $('sheetText').classList.remove('open'); curNote=null; };
+$('xSave').onclick = ()=>{
+  if(!curNote) return;
+  const t = $('xText').value.trim();
+  if(!t){ $('sheetText').classList.remove('open'); curNote=null; return; }
+  pushHistory();
+  curNote.text = t;
+  if(curNote._new){ delete curNote._new; DOC.data.notes.push(curNote); }
+  $('sheetText').classList.remove('open'); curNote=null;
+  document.documentElement.scrollTop = document.body.scrollTop = 0; // המקלדת בטלפון מזיזה את הדף
+  scheduleSave(); draw(); runChecksSoon();
+};
+$('xDel').onclick = ()=>{
+  if(!curNote) return;
+  if(!curNote._new){ pushHistory(); DOC.data.notes = DOC.data.notes.filter(n=>n!==curNote); }
+  $('sheetText').classList.remove('open'); curNote=null; scheduleSave(); draw();
+};
+$('xMic').onclick = ()=> dictateInto(null, 'xText');
 
 /* ---------- הצמדות קווי קיר ---------- */
 function nearNode(w){
@@ -960,6 +1106,8 @@ function nearestWallToPoint(w){
 
 /* ---------- בחירה (הקשה) ---------- */
 function hitTest(w){
+  // טקסט
+  const tn = hitTestText(w); if(tn) return openTextSheet(tn);
   // חותמות
   for(const el of DOC.data.elements){ if(el.at && Math.hypot(el.at[0]-w.x, el.at[1]-w.y) < 16/view.s) return openStampSheet(el._id); }
   // גבהים
@@ -999,7 +1147,7 @@ $('wSave').onclick = ()=>{
   const segs = ($('wSegs').value||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>({cm:parseFloat(s), status:'measured', source:'typed'}));
   curWall.segments = segs.length ? segs : undefined;
   curWall.note = $('wNote').value.trim();
-  DOC.data.notes = DOC.data.notes.filter(n=>n.wall!==curWall.id);
+  DOC.data.notes = DOC.data.notes.filter(n=> n.at || n.wall!==curWall.id); // טקסט חופשי (עם at) נשאר
   if(curWall.note) DOC.data.notes.push({text:curWall.note, wall:curWall.id, source:'typed'});
   $('sheetWall').classList.remove('open');
   scheduleSave(); draw(); runChecksSoon();
@@ -1140,12 +1288,12 @@ function dictateInto(numField, noteField){
   rec.onresult = ev=>{
     const t = ev.results[0][0].transcript || '';
     const num = (t.match(/\d+(\.\d+)?/)||[])[0];
-    if(num) $(numField).value = num;
+    if(num && numField) $(numField).value = num;
     if(noteField){
-      const words = t.replace(/\d+(\.\d+)?/g,'').replace(/\s+/g,' ').trim();
+      const words = numField ? t.replace(/\d+(\.\d+)?/g,'').replace(/\s+/g,' ').trim() : t.trim();
       if(words.length>1) $(noteField).value = ($(noteField).value ? $(noteField).value+' ':'') + words;
     }
-    if(!num) toast('לא זוהה מספר בדיבור');
+    if(!num && numField) toast('לא זוהה מספר בדיבור');
   };
   rec.onerror = e=> toast('המיקרופון נכשל: '+e.error);
   rec.onend = ()=>{ rec=null; };
@@ -1155,7 +1303,7 @@ function dictateInto(numField, noteField){
 /* ---------- מרכוז ---------- */
 function bbox(){
   const pts = DOC.data.nodes;
-  const extra = [...DOC.data.elements.map(e=>e.at), ...DOC.data.heights.map(h=>h.at)].filter(Boolean);
+  const extra = [...DOC.data.elements.map(e=>e.at), ...DOC.data.heights.map(h=>h.at), ...DOC.data.notes.map(n=>n.at)].filter(Boolean);
   if(!pts.length && !extra.length) return null;
   let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
   for(const p of pts){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}
