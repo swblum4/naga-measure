@@ -101,6 +101,10 @@
   #dimBox.open{display:flex}
   #dimBox input{width:84px;padding:8px 6px;font-size:17px;text-align:center;direction:ltr}
   #dimBox button{padding:8px 10px;font-size:13px}
+  #photoBox{position:absolute;display:none;flex-direction:column;background:#fff;border-radius:12px;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);padding:10px 12px;z-index:23;width:224px}
+  #photoBox.open{display:flex}
+  #photoBox input[type=range]{padding:0;border:0;background:transparent;width:100%;accent-color:#1A73E8}
   #screenMain{position:relative}
 
   #stage{flex:1;position:relative;background:var(--paper);min-height:0}
@@ -155,7 +159,7 @@
   <div class="brandhead">
     <h1>מדידות</h1>
     <p>ציור חופשי או לפי רשימה, בכל מכשיר, בלי הרשמה</p>
-    <p style="font-size:11px;color:#7C858E">גרסה 16.9.2026 ג · עט⇄קו, קנה-מידה, עריכה</p>
+    <p style="font-size:11px;color:#7C858E">גרסה 16.9.2026 ד · תמונה על הדף</p>
   </div>
   <div class="card">
     <button class="go big" id="bNew">מדידה חדשה</button>
@@ -248,6 +252,15 @@
       <input id="dimVal" inputmode="decimal" placeholder="מידה" autocomplete="off">
       <button id="dimOk" class="go">✓</button>
       <button id="dimMore" class="ghost">עוד</button>
+    </div>
+    <div id="photoBox">
+      <div class="row"><b style="flex:1;font-size:14px">תמונה</b><button class="ghost" id="phClose">סגירה</button></div>
+      <label style="margin-top:8px">שקיפות</label>
+      <input id="phOpacity" type="range" min="10" max="100" step="5">
+      <div class="row" style="margin-top:8px">
+        <button id="phLock" class="ghost" style="flex:1">🔓 חופשית</button>
+        <button id="phDel" class="danger">מחיקה</button>
+      </div>
     </div>
 
     <div class="sheet" id="sheetWall">
@@ -569,8 +582,9 @@ function openMain(){
   setTool('draw');
   fit();
   draw();
+  loadDocImages();
 }
-$('bHome').onclick = ()=>{ closeDimBox(); flushSave(); refreshStartLists(); showScreen('screenStart'); };
+$('bHome').onclick = ()=>{ closeDimBox(); closePhotoBox(); flushSave(); refreshStartLists(); showScreen('screenStart'); };
 $('bChecklist').onclick = openChecklist;
 $('bClDrawerClose').onclick = ()=> $('checklistDrawer').classList.remove('open');
 function openChecklist(){ renderChecklistDrawer(); $('checklistDrawer').classList.add('open'); }
@@ -639,26 +653,80 @@ $('mClear').onclick = ()=>{
   closeDimBox(); scheduleSave(); draw();
 };
 
-/* ---------- מצלמה לקיר ---------- */
-let camWallId = null, pendingCamPick = false;
-$('bCam').onclick = ()=>{ pendingCamPick = true; toast('הקש על הקיר שרוצים לצלם'); };
-function pickWallForPhoto(wallId){
-  pendingCamPick = false;
-  camWallId = wallId;
-  $('fileCam').click();
+/* ---------- מצלמה: תמונה על הדף (עידן 16.9) ---------- */
+const IMG = new Map();            // _photoId ⇐ Image טעון
+let camWallId = null;
+async function loadDocImages(){
+  for(const p of DOC.data.photos){
+    if(!p._photoId || IMG.has(p._photoId)) continue;
+    const rec = await idbGet('photos', p._photoId); if(!rec) continue;
+    const im = new Image(); im.src = rec.data;
+    try{ await im.decode(); }catch(_){}
+    IMG.set(p._photoId, im);
+  }
+  draw();
 }
+$('bCam').onclick = ()=>{ camWallId = null; $('fileCam').click(); };
+function pickWallForPhoto(wallId){ camWallId = wallId; $('fileCam').click(); }
 $('fileCam').onchange = e=>{
-  const f = e.target.files && e.target.files[0]; if(!f || !camWallId) return;
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const wallId = camWallId; camWallId = null;
   downscaleToDataURL(f, 1280).then(durl=>{
-    const w = DOC.data.walls.find(w=>w.id===camWallId); if(!w) return;
     const pid = uid();
     idbPut('photos', {id:pid, data:durl});
-    const fname = sanitizeFile(docTitle(DOC.data.header))+'_wall'+camWallId+'.jpg';
-    w.photos.push(pid);
-    DOC.data.photos.push({file:fname, wall:camWallId, taken:new Date().toISOString(), _photoId:pid});
-    scheduleSave(); draw(); toast('התמונה נשמרה לקיר '+camWallId);
+    const im = new Image(); im.src = durl;
+    im.onload = ()=>{
+      IMG.set(pid, im);
+      pushHistory();
+      const r = cv.getBoundingClientRect();
+      // גודל התחלתי ~55% מרוחב המסך (ביחידות-דף); מיקום: מרכז המסך, או אמצע הקיר
+      const w = (r.width*0.55)/view.s, h = w*im.height/im.width;
+      let cx = (r.width/2-view.ox)/view.s, cy = (r.height/2-view.oy)/view.s;
+      const wl = wallId ? DOC.data.walls.find(x=>x.id===wallId) : null;
+      if(wl){ const a=nodePos(wl.from), b=nodePos(wl.to); cx=(a.x+b.x)/2; cy=(a.y+b.y)/2; wl.photos.push(pid); }
+      const fname = sanitizeFile(docTitle(DOC.data.header))+'_'+(wallId ? 'wall'+wallId : 'photo'+(DOC.data.photos.length+1))+'.jpg';
+      DOC.data.photos.push({file:fname, wall:wallId, taken:new Date().toISOString(), _photoId:pid,
+        at:[Math.round(cx-w/2), Math.round(cy-h/2)], w:Math.round(w), h:Math.round(h), opacity:0.6, locked:false, _round:activeRound});
+      scheduleSave(); draw();
+      toast(wallId ? 'התמונה על הדף ליד קיר '+wallId : 'התמונה על הדף. „עריכה” מזיזה, משנה גודל ושקיפות');
+    };
   });
   e.target.value='';
+};
+
+/* ---------- חלונית תמונה: שקיפות · נעילה · מחיקה ---------- */
+let phPhoto = null;
+function openPhotoBox(p){
+  phPhoto = p;
+  $('phOpacity').value = Math.round((p.opacity==null ? 0.6 : p.opacity)*100);
+  $('phLock').textContent = p.locked ? '🔒 נעולה' : '🔓 חופשית';
+  positionPhotoBox(); $('photoBox').classList.add('open');
+}
+function positionPhotoBox(){
+  if(!phPhoto) return;
+  const r=cv.getBoundingClientRect(), b=$('photoBox');
+  const sx=phPhoto.at[0]*view.s+view.ox, sy=phPhoto.at[1]*view.s+view.oy;
+  b.style.left = Math.max(4, Math.min(r.width-232, sx))+'px';
+  b.style.top  = Math.max(4, Math.min(r.height-130, sy-8))+'px';
+}
+function closePhotoBox(){ if(!phPhoto) return; $('photoBox').classList.remove('open'); phPhoto=null; }
+$('phClose').onclick = closePhotoBox;
+$('phOpacity').oninput = ()=>{ if(!phPhoto) return; phPhoto.opacity = $('phOpacity').value/100; draw(); };
+$('phOpacity').onchange = ()=> scheduleSave();
+$('phLock').onclick = ()=>{
+  if(!phPhoto) return;
+  phPhoto.locked = !phPhoto.locked;
+  $('phLock').textContent = phPhoto.locked ? '🔒 נעולה' : '🔓 חופשית';
+  scheduleSave(); draw();
+  toast(phPhoto.locked ? 'התמונה נעולה: לא זזה ולא משנה גודל' : 'התמונה חופשית');
+};
+$('phDel').onclick = ()=>{
+  if(!phPhoto) return;
+  pushHistory();
+  const p = phPhoto;
+  DOC.data.photos = DOC.data.photos.filter(x=>x!==p);
+  for(const wl of DOC.data.walls) wl.photos = (wl.photos||[]).filter(id=>id!==p._photoId);
+  closePhotoBox(); scheduleSave(); draw();
 };
 function downscaleToDataURL(file, maxSide){
   return new Promise(res=>{
@@ -679,7 +747,7 @@ function downscaleToDataURL(file, maxSide){
 const cv = $('cv'); const ctx = cv.getContext('2d');
 let view = {ox:0, oy:0, s:1};
 let history = [], redoStack = [];
-function snapshot(){ const d=DOC.data; return JSON.stringify({nodes:d.nodes,walls:d.walls,heights:d.heights,elements:d.elements,ink:d.ink,notes:d.notes}); }
+function snapshot(){ const d=DOC.data; return JSON.stringify({nodes:d.nodes,walls:d.walls,heights:d.heights,elements:d.elements,ink:d.ink,notes:d.notes,photos:d.photos}); }
 function pushHistory(){
   history.push(snapshot()); redoStack = [];
   if(history.length>40) history.shift();
@@ -738,7 +806,26 @@ function drawScene(c, v, w, h, opts={}){
     }
   }
 
-  // דיו חופשי וסימנונית
+  // תמונות (מתחת לדיו ולקירות)
+  for(const p of DOC.data.photos){
+    if(!p.at) continue;
+    const im = IMG.get(p._photoId); if(!im) continue;
+    c.globalAlpha = p.opacity==null ? 0.6 : p.opacity;
+    c.drawImage(im, p.at[0], p.at[1], p.w, p.h);
+    c.globalAlpha = 1;
+    if(opts.editing){
+      c.strokeStyle='#1A73E8'; c.lineWidth=1.5/v.s; c.setLineDash([6/v.s,4/v.s]);
+      c.strokeRect(p.at[0], p.at[1], p.w, p.h); c.setLineDash([]);
+      if(p.locked){
+        c.save(); c.translate(p.at[0]+p.w, p.at[1]); c.scale(1/v.s,1/v.s);
+        c.font='16px system-ui, sans-serif'; c.textAlign='right'; c.textBaseline='top'; c.fillStyle='#1A73E8'; c.fillText('🔒', -4, 4); c.restore();
+      } else {
+        const hs=14/v.s; c.fillStyle='#1A73E8'; c.fillRect(p.at[0]+p.w-hs, p.at[1]+p.h-hs, hs, hs);
+      }
+    }
+  }
+
+  // דיו חופשי
   c.lineCap='round'; c.lineJoin='round';
   for(const s of DOC.data.ink){
     if(!s.points || s.points.length<2) continue;
@@ -841,8 +928,9 @@ function roundRect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x
 let preview=null, previewStroke=null;
 function draw(){
   const r = cv.getBoundingClientRect();
-  drawScene(ctx, view, r.width, r.height);
+  drawScene(ctx, view, r.width, r.height, {editing: tool==='move'});
   if(dimWall) positionDimBox();
+  if(phPhoto) positionPhotoBox();
   ctx.save(); ctx.translate(view.ox,view.oy); ctx.scale(view.s,view.s);
   if(preview){
     ctx.strokeStyle='#E4B429'; ctx.lineWidth=2.6/view.s; ctx.setLineDash([6/view.s,5/view.s]);
@@ -889,10 +977,9 @@ cv.addEventListener('pointerdown', e=>{
     if(SET.tool_palmRejection && penSeen && e.pointerType!=='pen'){
       panOne = {x:e.clientX,y:e.clientY, ox:view.ox, oy:view.oy}; start=null; preview=null; return;
     }
-    closeDimBox();
+    closeDimBox(); closePhotoBox();
     const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
     moved=0; start=w;
-    if(pendingCamPick) return;                                   // הקשה תבחר קיר ב-endPtr
     if(tool==='draw' && !lineMode){ drawingInk=true; holdLine=null; previewStroke=[[w.x,w.y]]; lastMovePt=w; armHold(); }
     else if(tool==='draw'){ start=snapPt(w); preview={a:{...start}, b:{...start}}; }
     else if(tool==='eraser'){ erasing={did:false}; eraseAt(w); }
@@ -947,11 +1034,6 @@ function endPtr(e){
   const rect=cv.getBoundingClientRect();
   const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
   const tap = !!start && moved<14;
-  if(pendingCamPick){
-    pendingCamPick=false;
-    if(tap){ const hit = nearestWallToPoint(w); if(hit) pickWallForPhoto(hit.id); else toast('אין קיר קרוב'); }
-    resetPtr(); draw(); return;
-  }
   if(drawingInk){
     drawingInk=false;
     if(holdLine){ const hl=holdLine; holdLine=null; preview=null; addWall(hl.a, hl.b); }
@@ -968,7 +1050,11 @@ function endPtr(e){
     start=null; draw(); return;
   }
   if(erasing){ if(erasing.did) scheduleSave(); erasing=null; start=null; draw(); return; }
-  if(moving){ if(moving.pushed) scheduleSave(); else if(tap) hitTest(w); moving=null; start=null; draw(); return; }
+  if(moving){
+    if(moving.pushed) scheduleSave();
+    else if(tap){ if(moving.kind==='photo'||moving.kind==='photoResize') openPhotoBox(moving.ref); else hitTest(w); }
+    moving=null; start=null; draw(); return;
+  }
   if(tool==='move'){ if(tap) hitTest(w); start=null; return; }
   if(tool==='text'){ if(tap){ const hit=hitTestText(w); if(hit) openTextSheet(hit); else placeText(w); } start=null; draw(); return; }
   if(tool==='height'){ if(tap){ const hh=hitTestHeight(w); if(hh) openHeightSheet(hh._id); else placeHeight(w); } start=null; draw(); return; }
@@ -984,6 +1070,12 @@ function grabAt(w){
   const h = hitTestHeight(w); if(h) return {kind:'height', ref:h};
   const wl = nearestWallToPoint(w, 18/view.s); if(wl) return {kind:'wall', ref:wl};
   const s = DOC.data.ink.find(s=> strokeHit(s, w, 14/view.s)); if(s) return {kind:'ink', ref:s};
+  for(let i=DOC.data.photos.length-1; i>=0; i--){
+    const p = DOC.data.photos[i]; if(!p.at) continue;
+    const hs = 22/view.s;
+    if(!p.locked && w.x>=p.at[0]+p.w-hs && w.x<=p.at[0]+p.w+hs/2 && w.y>=p.at[1]+p.h-hs && w.y<=p.at[1]+p.h+hs/2) return {kind:'photoResize', ref:p};
+    if(w.x>=p.at[0] && w.x<=p.at[0]+p.w && w.y>=p.at[1] && w.y<=p.at[1]+p.h) return {kind:'photo', ref:p};
+  }
   return null;
 }
 function moveBy(m, dx, dy){
@@ -992,6 +1084,8 @@ function moveBy(m, dx, dy){
     for(const id of new Set([m.ref.from, m.ref.to])){ const n=DOC.data.nodes.find(n=>n.id===id); if(n){ n.x+=dx; n.y+=dy; } }
   }
   else if(m.kind==='ink'){ for(const p of m.ref.points){ p[0]+=dx; p[1]+=dy; } }
+  else if(m.kind==='photo'){ if(!m.ref.locked){ m.ref.at[0]+=dx; m.ref.at[1]+=dy; } }
+  else if(m.kind==='photoResize'){ const p=m.ref; const nw=Math.max(40/view.s, p.w+dx); p.h = nw*p.h/p.w; p.w = nw; }
 }
 
 /* ---------- מחק: מוחק קו דיו או טקסט שהעט עובר עליו ---------- */
@@ -1269,11 +1363,12 @@ function dictateInto(numField, noteField){
 function bbox(){
   const pts = DOC.data.nodes;
   const extra = [...DOC.data.elements.map(e=>e.at), ...DOC.data.heights.map(h=>h.at), ...DOC.data.notes.map(n=>n.at)].filter(Boolean);
-  if(!pts.length && !extra.length) return null;
+  if(!pts.length && !extra.length && !DOC.data.ink.length && !DOC.data.photos.some(p=>p.at)) return null;
   let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
   for(const p of pts){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}
   for(const p of extra){x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}
   for(const s of DOC.data.ink) for(const p of (s.points||[])){x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}
+  for(const p of DOC.data.photos) if(p.at){x0=Math.min(x0,p.at[0]);y0=Math.min(y0,p.at[1]);x1=Math.max(x1,p.at[0]+p.w);y1=Math.max(y1,p.at[1]+p.h);}
   return {x0,y0,x1,y1,w:Math.max(1,x1-x0),h:Math.max(1,y1-y0)};
 }
 function fit(){
