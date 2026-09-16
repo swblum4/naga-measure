@@ -152,7 +152,7 @@
 
   #stage{flex:1;position:relative;background:var(--paper);min-height:0}
   canvas{display:block;width:100%;height:100%}
-  #toast{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));inset-inline-start:50%;transform:translateX(50%);z-index:60;background:rgba(35,40,45,.94);
+  #toast{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom));inset-inline-start:50%;transform:translateX(50%);z-index:60;background:rgba(35,40,45,.94);
     color:#fff;padding:9px 14px;border-radius:9px;font-size:13px;max-width:88%;text-align:center;opacity:0;
     transition:opacity .18s;pointer-events:none;z-index:30}
   #toast.show{opacity:1}
@@ -862,6 +862,7 @@ function downscaleToDataURL(file, maxSide){
    ========================================================= */
 const cv = $('cv'); const ctx = cv.getContext('2d');
 let view = {ox:0, oy:0, s:1};
+let DPR = 1;
 let history = [], redoStack = [];   // let (לא var): var בסקופ גלובלי = window.history של הדפדפן
 function snapshot(){ const d=DOC.data; return JSON.stringify({nodes:d.nodes,walls:d.walls,heights:d.heights,elements:d.elements,ink:d.ink,notes:d.notes,photos:d.photos,scale_cm_per_px:d.scale_cm_per_px||null}); }
 function pushHistory(){
@@ -884,7 +885,7 @@ $('bRedo').onclick = ()=>{
 
 function resize(){
   const r = cv.getBoundingClientRect(); if(!r.width) return;
-  const dpr = Math.min(devicePixelRatio||1, 2.5);
+  const dpr = Math.min(devicePixelRatio||1, 2.5); DPR = dpr;
   cv.width = r.width*dpr; cv.height = r.height*dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   draw();
@@ -917,26 +918,22 @@ function drawScene(c, v, w, h, opts={}){
   c.translate(v.ox, v.oy); c.scale(v.s, v.s);
 
   if(opts.grid !== false && SET.showGrid !== false){
-    // גריד בקווים (עידן 16.9): אינסופי, צעד לפי זום; אחרי קנה-מידה — בס״מ. כל קו עשירי כהה יותר.
+    // גריד בקווים (עידן 16.9): אינסופי, צעד לפי זום; אחרי קנה-מידה — בס״מ. מצויר בקואורדינטות-מסך על חצי-פיקסל (חד בשמש).
     const g = gridStep(v), step = g.step;
-    if(g.sub){   // קווי-משנה עדינים (עשירית)
-      const sx0=Math.floor((-v.ox/v.s)/g.sub), sy0=Math.floor((-v.oy/v.s)/g.sub);
-      const sx1=sx0+Math.ceil(w/v.s/g.sub)+1, sy1=sy0+Math.ceil(h/v.s/g.sub)+1;
-      c.lineWidth = 1/v.s; c.strokeStyle='#EBEFF2'; c.beginPath();
-      for(let k=sx0;k<=sx1;k++){ if(k%10===0) continue; const x=k*g.sub; c.moveTo(x, sy0*g.sub); c.lineTo(x, sy1*g.sub); }
-      for(let k=sy0;k<=sy1;k++){ if(k%10===0) continue; const y=k*g.sub; c.moveTo(sx0*g.sub, y); c.lineTo(sx1*g.sub, y); }
+    const S = wx => Math.round((wx*v.s + v.ox)*DPR)/DPR + 0.5/DPR, Y = wy => Math.round((wy*v.s + v.oy)*DPR)/DPR + 0.5/DPR;
+    c.save(); c.setTransform(DPR,0,0,DPR,0,0); c.lineWidth = 1;
+    const lines = (st, color, skipMajor)=>{
+      const kx0=Math.floor((-v.ox/v.s)/st), ky0=Math.floor((-v.oy/v.s)/st);
+      const kx1=kx0+Math.ceil(w/v.s/st)+1, ky1=ky0+Math.ceil(h/v.s/st)+1;
+      c.strokeStyle = color; c.beginPath();
+      for(let k=kx0;k<=kx1;k++){ if(skipMajor!==null && ((k%10===0)!==skipMajor)) continue; const x=S(k*st); c.moveTo(x,0); c.lineTo(x,h); }
+      for(let k=ky0;k<=ky1;k++){ if(skipMajor!==null && ((k%10===0)!==skipMajor)) continue; const y=Y(k*st); c.moveTo(0,y); c.lineTo(w,y); }
       c.stroke();
-    }
-    const kx0=Math.floor((-v.ox/v.s)/step), ky0=Math.floor((-v.oy/v.s)/step);
-    const kx1=kx0+Math.ceil(w/v.s/step)+1, ky1=ky0+Math.ceil(h/v.s/step)+1;
-    const wx0=kx0*step, wx1=kx1*step, wy0=ky0*step, wy1=ky1*step;
-    c.lineWidth = 1/v.s;
-    for(const major of [false,true]){
-      c.strokeStyle = major ? '#BFC6CE' : '#DDE2E7'; c.beginPath();
-      for(let k=kx0;k<=kx1;k++){ if((k%10===0)!==major) continue; const x=k*step; c.moveTo(x,wy0); c.lineTo(x,wy1); }
-      for(let k=ky0;k<=ky1;k++){ if((k%10===0)!==major) continue; const y=k*step; c.moveTo(wx0,y); c.lineTo(wx1,y); }
-      c.stroke();
-    }
+    };
+    if(g.sub) lines(g.sub, '#EBEFF2', false);   // קווי-משנה (עשירית), בלי הכפולות של הצעד הראשי
+    lines(step, '#DDE2E7', false);             // רגילים
+    lines(step, '#BFC6CE', true);              // כל קו עשירי
+    c.restore();
   }
 
   // תמונות (מתחת לדיו ולקירות)
@@ -1284,7 +1281,7 @@ function gridStep(v){
 }
 function gridLabelText(){
   const g = gridStep(view);
-  const f = cm => { cm = Math.round(cm*100)/100; return cm<1 ? Math.round(cm*10)+' מ״מ' : cm>=100 ? (cm/100)+' מ׳' : cm+' ס״מ'; };
+  const f = cm => { cm = Math.round(cm*100)/100; if(SET.units==='mm' && cm<100) return Math.round(cm*10)+' מ״מ'; return cm<1 ? Math.round(cm*10)+' מ״מ' : cm>=100 ? (cm/100)+' מ׳' : cm+' ס״מ'; };
   if(SET.showGrid===false){
     if(SET.gridSnap===false) return '';
     return g.cm==null ? 'הצמדה לרשת מוסתרת' : 'הצמדה: '+f(g.snap*DOC.data.scale_cm_per_px)+' (רשת מוסתרת)';
