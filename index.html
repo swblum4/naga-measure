@@ -146,7 +146,7 @@
   #qExt button{padding:8px 10px;font-size:13px;flex:1}
   #qExt button.on{background:#E8F0FE;color:#1A73E8}
   #gridLbl{position:absolute;right:10px;top:6px;font-size:11px;color:#7C858E;background:rgba(245,244,241,.85);padding:2px 7px;border-radius:6px;pointer-events:none;z-index:12;transition:color .2s}
-  #gridLbl.flash{color:#1A73E8;font-weight:700}
+  #gridLbl.hot{color:#1A73E8;font-weight:700}
   .pending{font-size:11px;padding:3px 7px;border-radius:7px;background:#FDF2D9;color:#9A7100;margin-inline-start:6px;white-space:nowrap}
   #screenMain{position:relative}
 
@@ -428,7 +428,7 @@ const TOOL_LABELS = [
 ];
 const RULE_LABELS = [
   ['rule_R1','R1 · קיר בלי מידה'],['rule_R2','R2 · אין אף גובה בדף'],['rule_R3','R3 · חדר לא סגור'],
-  ['rule_R4','R4 · קיר בלי תמונה'],['rule_R5','R5 · בלי שקעים/מים/מיזוג'],['rule_R6','R6 · סכום מקטעים לא תואם'],
+  ['rule_R4','R4 · קיר בלי תמונה'],['rule_R6','R6 · סכום מקטעים לא תואם'],
   ['rule_R7','R7 · ערך חשוד'],['rule_R8','R8 · פריט מסומן לחזור'],
 ];
 
@@ -490,7 +490,7 @@ window.addEventListener('pagehide', flushSave);
 
 /* ---------- ניווט מסכים ---------- */
 function showScreen(id){
-  if(typeof closeQuick==='function' && quick) closeQuick();
+  if(typeof closeQuick==='function' && quick) closeQuick({commit:true});
   for(const s of ['screenStart','screenNew','screenSettings','screenMain','screenClose']) $(s).hidden = (s!==id);
   if(id==='screenMain') setTimeout(resize,30);
 }
@@ -522,11 +522,13 @@ function esc(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>
 function hasContent(d){ const x=d.data; return !!(x.walls.length||x.ink.length||x.heights.length||x.notes.length||x.photos.some(p=>p.at)); }
 function isPending(d){ return hasContent(d) && (d.data.shared_at===null || !!d.data.edited_after_share); }   // מסמכים מלפני הגרסה (undefined) לא מסומנים
 let onlineT = null, lastOnlineN = -1;
+window.addEventListener('offline', ()=>{ lastOnlineN = -1; });
 window.addEventListener('online', ()=>{
   clearTimeout(onlineT);
   onlineT = setTimeout(async ()=>{
     if($('screenStart').hidden || !DB) return;
-    const n = (await idbAll('docs')).filter(isPending).length;
+    const docs = await idbAll('docs');
+    const n = docs.filter(d=>{ try{ migrateDoc(d.data); return isPending(d); }catch(_){ return false; } }).length;
     if(n && n!==lastOnlineN){ lastOnlineN = n; toast(n===1 ? 'יש אינטרנט: מדידה אחת ממתינה לשליחה' : 'יש אינטרנט: '+n+' מדידות ממתינות לשליחה'); refreshStartLists(); }
   }, 1500);
 });
@@ -636,7 +638,7 @@ function openMain(){
   draw();
   loadDocImages();
 }
-$('bHome').onclick = ()=>{ closeDimBox(); closePhotoBox(); flushSave(); refreshStartLists(); showScreen('screenStart'); };
+$('bHome').onclick = ()=>{ closeDimBox(); closePhotoBox(); flushSave(); showScreen('screenStart'); DOC = null; refreshStartLists(); };
 $('bChecklist').onclick = openChecklist;
 $('bClDrawerClose').onclick = ()=> $('checklistDrawer').classList.remove('open');
 function openChecklist(){ renderChecklistDrawer(); $('checklistDrawer').classList.add('open'); }
@@ -662,7 +664,7 @@ function setTool(t){
   for(const [id,name] of [['tDraw','draw'],['tEraser','eraser'],['tText','text'],['tHeight','height'],['tMove','move']])
     $(id).classList.toggle('on', t===name);
   $('sideMenu').classList.remove('open');
-  closeQuick();
+  closeQuick({commit:true});
   updateDrawButton();
   refreshToolStrip();
   collapseToolbar();
@@ -867,10 +869,13 @@ let history = [], redoStack = [];   // let (לא var): var בסקופ גלובל
 function snapshot(){ const d=DOC.data; return JSON.stringify({nodes:d.nodes,walls:d.walls,heights:d.heights,elements:d.elements,ink:d.ink,notes:d.notes,photos:d.photos,scale_cm_per_px:d.scale_cm_per_px||null}); }
 function pushHistory(){
   if(DOC.data.shared_at) DOC.data.edited_after_share = true;   // עריכה אחרי שליחה ⇐ שוב „ממתין”
+  if(DOC.data.shared_at===undefined) DOC.data.shared_at = null;   // מסמך ישן שנערך נכנס למעקב
+  if(quick) quick.hist = true;
   history.push(snapshot()); redoStack = [];
   if(history.length>40) history.shift();
 }
 $('bUndo').onclick = ()=>{
+  if(quick && (quick.isNew || $('qVal').value.trim()!==quick.initial)){ closeQuick(); toast('הבועה נסגרה בלי שמירה'); return; }
   closeQuick(); closePhotoBox();
   const h = history.pop(); if(!h){ toast('אין מה לבטל'); return; }
   redoStack.push(snapshot());
@@ -917,7 +922,7 @@ function drawScene(c, v, w, h, opts={}){
   c.fillRect(0,0,w,h);
   c.translate(v.ox, v.oy); c.scale(v.s, v.s);
 
-  if(opts.grid !== false && SET.showGrid !== false){
+  if(opts.grid !== false && SET.showGrid !== false && !gridStep(v).hide){
     // גריד בקווים (עידן 16.9): אינסופי, צעד לפי זום; אחרי קנה-מידה — בס״מ. מצויר בקואורדינטות-מסך על חצי-פיקסל (חד בשמש).
     const g = gridStep(v), step = g.step;
     const S = wx => Math.round((wx*v.s + v.ox)*DPR)/DPR + 0.5/DPR, Y = wy => Math.round((wy*v.s + v.oy)*DPR)/DPR + 0.5/DPR;
@@ -1104,6 +1109,7 @@ function resetPtr(){ start=null; preview=null; previewStroke=null; drawingInk=fa
 
 cv.addEventListener('pointerdown', e=>{
   if(SET.tool_palmRejection && e.pointerType!=='pen' && [...act.values()].some(p=>p.pen)) return;   // כף-יד באמצע משיכת-עט: מתעלמים
+  if(SET.tool_palmRejection && e.pointerType==='pen'){ for(const [id,p] of act) if(!p.pen) act.delete(id); panOne=null; pinch=null; }   // כף-יד שנחתה לפני העט
   try{ cv.setPointerCapture(e.pointerId); }catch(_){}   // מצביע לא-פעיל (למשל סינתטי) לא יקטע את הטיפול
   act.set(e.pointerId,{x:e.clientX,y:e.clientY,pen:e.pointerType==='pen'});
   const rect=cv.getBoundingClientRect();
@@ -1113,8 +1119,11 @@ cv.addEventListener('pointerdown', e=>{
       panOne = {x:e.clientX,y:e.clientY, ox:view.ox, oy:view.oy}; start=null; preview=null; return;
     }
     barWasOpen = !!quick || !!phPhoto;
+    const w0 = toWorld(e.clientX-rect.left, e.clientY-rect.top);
+    const n0 = quick ? nearNode(w0) : null;   // צומת שאולי יזוז בשמירה
     closeQuick({commit:true}); closePhotoBox();
-    const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
+    const nn = n0 ? DOC.data.nodes.find(n=>n.id===n0.id) : null;
+    const w = nn ? {x:nn.x, y:nn.y} : w0;
     moved=0; start=w;
     if(tool==='draw' && !lineMode){ drawingInk=true; holdLine=null; previewStroke=[[w.x,w.y]]; lastMovePt=w; armHold(); }
     else if(tool==='draw'){ start=snapPt(w); preview={a:{...start}, b:{...start}}; }
@@ -1159,7 +1168,7 @@ cv.addEventListener('pointermove', e=>{
   if(tool==='draw' && lineMode && preview){ preview={a:{...start}, b:snapEnd(start,w)}; scheduleDraw(); return; }
   if(erasing){ eraseAt(w); return; }
   if(moving){
-    if(!moving.pushed){ pushHistory(); moving.pushed=true; }
+    if(!moving.pushed){ if(moved<6) return; pushHistory(); moving.pushed=true; moving.last=start; }   // הקשה עם עט ≠ גרירה
     moveBy(moving, w.x-moving.last.x, w.y-moving.last.y); moving.last=w; scheduleDraw(); return;
   }
 });
@@ -1172,7 +1181,7 @@ function endPtr(e){
   const rect=cv.getBoundingClientRect();
   const w = toWorld(e.clientX-rect.left, e.clientY-rect.top);
   const tap = !!start && moved<14;
-  if(barWasOpen){ barWasOpen=false; if(tap){ resetPtr(); draw(); return; } }   // ההקשה רק סגרה סרגל
+  if(barWasOpen){ barWasOpen=false; if(tap){ resetPtr(); if(tool!=='eraser') hitTest(w); draw(); return; } }   // ההקשה סגרה סרגל; על אלמנט אחר — פותחת אותו
   if(drawingInk){
     drawingInk=false;
     if(holdLine){ const hl=holdLine; holdLine=null; preview=null; addWall(hl.a, hl.b); }
@@ -1261,7 +1270,7 @@ function placeText(w){
 
 /* ---------- הצמדה: צמתים, גריד, קווים ---------- */
 const GRID_MIN_PX = 22;   // מרווח-מסך מינימלי בין קווי גריד
-const GRID_SUB_PX = 100;  // כשהמרווח ≥ זה, מצוירים קווי-משנה (עשירית) וההצמדה עוברת אליהם
+const GRID_SUB_PX = 160;  // כשהמרווח ≥ זה, מצוירים קווי-משנה (עשירית) וההצמדה עוברת אליהם
 function gridStep(v){
   // מחזיר {step, cm, snap, sub}: step ביחידות-דף (הקטן ביותר שמרווחו ≥ GRID_MIN_PX), cm ערכו בס״מ (null לפני קנה-מידה),
   // sub = צעד-משנה (עשירית) אם יש מקום, snap = הצעד שאליו נצמדים.
@@ -1269,11 +1278,11 @@ function gridStep(v){
   const sc = DOC && DOC.data.scale_cm_per_px;
   let g;
   if(sc){
-    g = {step: 1000/sc, cm: 1000};
-    for(const cm of [0.1, 1, 10, 100, 1000]){ const step = cm/sc; if(step*v.s >= GRID_MIN_PX){ g = {step, cm}; break; } }
+    g = {step: 10000/sc, cm: 10000, hide:true};
+    for(const cm of [0.1, 1, 10, 100, 1000, 10000]){ const step = cm/sc; if(step*v.s >= GRID_MIN_PX){ g = {step, cm}; break; } }
   } else {
-    g = {step: 5000, cm: null};
-    for(const u of [5, 25, 50, 100, 250, 500, 1000, 2500, 5000]){ if(u*v.s >= GRID_MIN_PX){ g = {step:u, cm:null}; break; } }
+    g = {step: 50000, cm: null, hide:true};
+    for(const u of [5, 25, 50, 100, 250, 500, 1000, 2500, 5000, 50000]){ if(u*v.s >= GRID_MIN_PX){ g = {step:u, cm:null}; break; } }
   }
   g.sub = (g.step*v.s >= GRID_SUB_PX && !(g.cm!=null && g.cm<=0.1)) ? g.step/10 : null;
   g.snap = g.sub || g.step;
@@ -1294,7 +1303,7 @@ let _gridFlashT=null;
 function updateGridLabel(){
   const t = gridLabelText(); if(t===_gridLbl) return;
   const first = _gridLbl===null; _gridLbl=t; $('gridLbl').textContent=t; $('gridLbl').hidden=!t;
-  if(!first){ $('gridLbl').classList.add('flash'); clearTimeout(_gridFlashT); _gridFlashT=setTimeout(()=> $('gridLbl').classList.remove('flash'), 700); }
+  if(!first){ $('gridLbl').classList.add('hot'); clearTimeout(_gridFlashT); _gridFlashT=setTimeout(()=> $('gridLbl').classList.remove('hot'), 700); }
 }
 function nearNode(w){
   const gs = gridStep(view).snap*view.s;                               // מרווח-ההצמדה על המסך
@@ -1316,11 +1325,14 @@ function getOrAddNode(w){
   const id = nextNodeId(); DOC.data.nodes.push({id,x:Math.round(w.x*10)/10,y:Math.round(w.y*10)/10}); return id;
 }
 function addWall(a,bRaw){
+  const hitA = nearNode(a), a0 = hitA ? {x:hitA.x,y:hitA.y} : a;
+  const bPre = snapEnd(a0, bRaw);
+  if(Math.hypot(bPre.x-a0.x, bPre.y-a0.y) < 1e-6) return;   // קצוות מתלכדים: בלי צומת יתום ובלי לגעת בהיסטוריה
   pushHistory();
   const ai = getOrAddNode(a);
   const snapped = snapEnd(nodePos(ai), bRaw);
   const bi = getOrAddNode(snapped);
-  if(ai===bi){ history.pop(); return; }
+  if(ai===bi){ history.pop(); DOC.data.nodes = DOC.data.nodes.filter(n=> n.id!==ai || DOC.data.walls.some(w=>w.from===ai||w.to===ai)); return; }
   const letter = SET.tool_wallLetters ? nextWallLetter() : ('#'+(DOC.data.walls.length+1));
   const wl = {id:letter, from:ai, to:bi, length:null, condition:'unknown', photos:[], _round:activeRound};
   DOC.data.walls.push(wl);
@@ -1359,8 +1371,8 @@ function applyWallLength(wl, cm, raw){
     if(Math.abs(want-px) > 0.5){          // ההתחלה נשארת, הקצה זז לאורך הנכון
       const a=nodePos(wl.from), bN=DOC.data.nodes.find(n=>n.id===wl.to);
       // קצה משותף עם קיר שכבר קיבל מידה מוקלדת — לא מזיזים (המידה שלו הייתה מתעוותת); המספר נשמר
-      const lockedNeighbor = DOC.data.walls.some(w=> w!==wl && (w.from===wl.to || w.to===wl.to) && w.length && w.length.cm!=null && w.length.source==='typed');
-      if(lockedNeighbor || !bN) toast('הקצה משותף עם קיר שכבר נמדד — המידה נשמרה, הציור נשאר סקיצה');
+      const shared = DOC.data.walls.some(w=> w!==wl && (w.from===wl.to || w.to===wl.to));   // קצה משותף: הזזה הייתה מעקמת את השכן
+      if(shared || !bN) toast('הקצה משותף עם קיר אחר — המידה נשמרה, הציור נשאר סקיצה');
       else { const ux=(bN.x-a.x)/px, uy=(bN.y-a.y)/px; bN.x = Math.round((a.x+ux*want)*10)/10; bN.y = Math.round((a.y+uy*want)*10)/10; }
     }
   }
@@ -1407,6 +1419,7 @@ function openQuick(kind, ref, opts={}){
   $('qMore').classList.remove('open'); $('qExt').hidden = true; $('qExt').innerHTML='';
   quick.initial = inp.value;
   $('quick').classList.add('open');
+  setTimeout(onViewportChange, 60);
   positionQuick();
   const wantFocus = opts.focus!==undefined ? opts.focus : (inp.value==='');   // יש ערך ⇐ בלי מקלדת; הקשה על הבועה פותחת
   setTimeout(()=>{ if(quick!==null && wantFocus){ inp.focus({preventScroll:true}); } document.documentElement.scrollTop=document.body.scrollTop=0; }, 30);
@@ -1428,22 +1441,26 @@ function positionQuick(){
 function onViewportChange(){
   positionQuick(); positionPhotoBox();
   const vv = window.visualViewport;
-  $('zoomBtns').hidden = !!(vv && vv.height < window.innerHeight - 150);   // מקלדת פתוחה: הזום מיותר ומפריע
+  const ae = document.activeElement;
+  $('zoomBtns').hidden = !!(quick && ae && ae.closest && ae.closest('#quick')) || !!(vv && vv.height < screen.height*0.55);   // מקלדת פתוחה: הזום מיותר ומפריע
 }
 if(window.visualViewport){ window.visualViewport.addEventListener('resize', onViewportChange); window.visualViewport.addEventListener('scroll', onViewportChange); }
 function closeQuick(opts={}){
   if(!quick) return;
   // הקשה על הדף = שמירה-אם-השתנה (עידן מקליד 240 ומקיש על הקיר הבא)
-  if(opts.commit && $('qVal').value.trim() !== quick.initial && $('qVal').value.trim() !== ''){ if(saveQuick({silent:true})) return; }
+  if(opts.commit && $('qVal').value.trim() !== quick.initial && $('qVal').value.trim() !== ''){ if(saveQuick({silent:true})) return; toast('המידה לא תקינה ולא נשמרה'); }
   quick = null;
   if(rec){ try{ rec.abort(); }catch(_){} rec = null; }
   if(document.activeElement && document.activeElement.closest && document.activeElement.closest('#quick')) document.activeElement.blur();
   $('quick').classList.remove('open'); $('qExt').innerHTML='';
   document.documentElement.scrollTop = document.body.scrollTop = 0;
+  onViewportChange();
   draw();
 }
+function flushExt(){ const ae=document.activeElement; if(ae && ae.closest && ae.closest('#qExt')) ae.blur(); }
 function saveQuick(opts={}){
   if(!quick) return false;
+  flushExt();
   const q = quick, raw = $('qVal').value.trim();
   if(q.kind==='note'){
     if(!raw){ if(q.isNew) closeQuick(); else deleteQuick(); return true; }   // טקסט קיים שרוקן = נמחק
@@ -1468,15 +1485,18 @@ function saveQuick(opts={}){
 }
 function deleteQuick(){
   if(!quick) return;
+  flushExt();
   const q = quick;
   if(q.kind==='note' && q.isNew){ closeQuick(); return; }
-  if(q.fresh && !q.hist && history.length) history.pop(); else pushHistory();   // אלמנט שנוצר הרגע: המחיקה מבטלת את היצירה
+  const undoCreate = q.fresh && !q.hist && history.length>0;
+  if(undoCreate) history.pop(); else pushHistory();   // אלמנט שנוצר הרגע: המחיקה מבטלת את היצירה
   if(q.kind==='wall') removeWall(q.ref);
   else if(q.kind==='height') DOC.data.heights = DOC.data.heights.filter(h=>h!==q.ref);
   else DOC.data.notes = DOC.data.notes.filter(n=>n!==q.ref);
   closeQuick(); scheduleSave(); draw();
-  toast('נמחק. „ביטול” בכותרת מחזיר');
   if(navigator.vibrate) navigator.vibrate(15);
+  if(undoCreate){ toast('בוטל'); return; }
+  toast('נמחק. „ביטול” בכותרת מחזיר');
   $('bUndo').classList.add('flash'); setTimeout(()=> $('bUndo').classList.remove('flash'), 1200);
 }
 function extHist(q){ if(!q.hist){ pushHistory(); q.hist=true; } }
@@ -1506,7 +1526,7 @@ function buildExt(q){
       wl.segments = segs.length ? segs : undefined; scheduleSave();
     };
     $('qCrooked').onclick = ()=>{ extHist(q); wl.condition = wl.condition==='crooked' ? 'unknown' : 'crooked'; $('qCrooked').classList.toggle('on', wl.condition==='crooked'); scheduleSave(); };
-    $('qPhoto').onclick = ()=>{ const id = wl.id; closeQuick(); pickWallForPhoto(id); };
+    $('qPhoto').onclick = ()=>{ const id = wl.id; closeQuick({commit:true}); pickWallForPhoto(id); };
     $('qReturn').onclick = ()=>{ extHist(q); wl.length = {cm:null, status:'not_measured_return', source:'typed', round:activeRound}; closeQuick(); scheduleSave(); draw(); toast('קיר '+wl.id+' סומן לחזרה'); };
     $('qNoteMic').onclick = ()=> dictateInto(null, 'qNote');
   } else if(q.kind==='height'){
@@ -1537,7 +1557,8 @@ $('qMore').onclick = ()=>{
 };
 $('qMic').onclick = ()=>{ if(!quick) return; if(quick.kind==='note') dictateInto(null, 'qVal'); else dictateInto('qVal', null); };
 $('quick').addEventListener('keydown', e=>{
-  if(e.target.tagName==='SELECT' || e.isComposing || e.keyCode===229) return;
+  if(e.target.tagName==='SELECT') return;
+  if(e.key!=='Enter' && e.keyCode!==13 && (e.isComposing || e.keyCode===229)) return;
   if(e.key==='Enter' || e.keyCode===13){ e.preventDefault(); if(e.target.id==='qVal') saveQuick(); else { e.target.blur(); $('qVal').focus({preventScroll:true}); } }
   else if(e.key==='Escape'){ e.preventDefault(); closeQuick(); }
 });
@@ -1622,14 +1643,11 @@ function runChecks(){
     if(open) found.push({rule:'R3', message:'החדר לא סגור (יש קצה פתוח)', target:null});
   }
   // R4: קיר בלי תמונה
-  if(SET.rule_R4 && SET.tool_camera) for(const w of d.walls){
+  if(SET.rule_R4 && SET.tool_camera && !d.photos.some(p=>p.at)) for(const w of d.walls){
     if(!w.photos || !w.photos.length) found.push({rule:'R4', message:'לקיר '+w.id+' אין תמונה', target:w.id});
   }
   // R5: בלי שקעים/מים/מיזוג
-  if(SET.rule_R5){
-    const hasAny = d.elements.some(e=>['outlet','water','ac'].includes(e.type));
-    if(!hasAny) found.push({rule:'R5', message:'סימנת שקעים / מים / מיזוג?', target:null});
-  }
+  // R5 (שקעים/מים/מיזוג) הושבת: אין כלי חותמות בממשק (עידן 16.9)
   // R6: סכום מקטעים לא תואם (מסודר בלבד)
   if(SET.rule_R6 && d.mode!=='free') for(const w of d.walls){
     if(w.segments && w.segments.length && w.length && w.length.cm!=null){
@@ -1682,9 +1700,9 @@ function renderCloseScreen(){
     cl.appendChild(row);
   }
   const rt = $('closeReturns'); rt.innerHTML='';
-  if(DOC.data.hide_numbers) rt.innerHTML = '<div class="listitem"><div class="meta"><b>המספרים מוסתרים — גם בקבצים שיישלחו</b><small>להציג: כפתור „מספרים” בסרגל</small></div></div>';
   const opens = DOC.data.checks.filter(c=>c.state==='return_later'||c.state==='open');
   if(!opens.length) rt.innerHTML='<div class="empty">אין פריטים פתוחים</div>';
+  if(DOC.data.hide_numbers) rt.innerHTML += '<div class="listitem"><div class="meta"><b>המספרים מוסתרים — גם בקבצים שיישלחו</b><small>להציג: כפתור „מספרים” בסרגל</small></div></div>';
   else for(const c of opens){ const row=document.createElement('div'); row.className='listitem'; row.innerHTML=`<div class="meta"><b>${esc(c.message)}</b></div>`; rt.appendChild(row); }
 }
 
@@ -1713,14 +1731,19 @@ function visualRTL(s, mirror=true){
   // H = עברית · L = לטינית/ספרות · ניטרל = L רק אם כלוא בין L ל-L, אחרת H.
   // הופכים את סדר הריצות, ובריצות H גם את סדר התווים (עם שיקוף סוגריים).
   const ch=[...String(s)];
-  const t=ch.map(c=> /[֐-׿]/.test(c) ? 'H' : /[A-Za-z0-9]/.test(c) ? 'L' : 'N');
+  // H עברית · L לטינית · E ספרות · N ניטרל. ניטרל: L בין L ל-L; מפריד-יחיד [.,:/-] בין E ל-E נשאר במספר (12.5, 2026-09-16); אחרת RTL.
+  const t=ch.map(c=> /[֐-׿]/.test(c) ? 'H' : /[A-Za-z]/.test(c) ? 'L' : /[0-9]/.test(c) ? 'E' : 'N');
   for(let i=0;i<t.length;i++){
     if(t[i]!=='N') continue;
     let a=i-1; while(a>=0 && t[a]==='N') a--;
     let b=i+1; while(b<t.length && t[b]==='N') b++;
     const A = a>=0 ? t[a] : 'H', B = b<t.length ? t[b] : 'H';
-    t[i] = (A==='L' && B==='L') ? 'L' : 'H';
+    if(A==='L' && B==='L') t[i]='L';
+    else if(A==='E' && B==='E' && b-a===2 && /[.,:\/-]/.test(ch[i])) t[i]='E';
+    else if((A==='L'||A==='E') && (B==='L'||B==='E') && b-a===2 && ch[i]!==' ') t[i]='L';
+    else t[i]='H';
   }
+  for(let i=0;i<t.length;i++) if(t[i]==='E') t[i]='L';   // ספרות מתנהגות כ-LTR בבניית הריצות
   const runs=[];
   for(let i=0;i<ch.length;i++){ if(runs.length && runs[runs.length-1].t===t[i]) runs[runs.length-1].s+=ch[i]; else runs.push({t:t[i], s:ch[i]}); }
   const MIRROR={'(':')',')':'(','[':']',']':'['};
@@ -1796,14 +1819,17 @@ function renderExportPNG(){
   return new Promise(resolve=>{
     const b = bbox() || {x0:0,y0:0,x1:200,y1:200,w:200,h:200};
     const pad=90, titleH=46, legendH=26, sc=2;
-    const w=b.w+pad*2, h=b.h+pad*2+titleH+legendH;
+    const d0 = DOC.data, meas=document.createElement('canvas').getContext('2d');
+    meas.font='700 20px Heebo, system-ui, sans-serif'; const tw=meas.measureText(`${docTitle(d0.header)}  ${d0.header.date}`).width;
+    meas.font='400 12px Heebo, system-ui, sans-serif'; const lw=meas.measureText(legendText(d0)).width;
+    const w=Math.max(b.w+pad*2, tw+48, lw+48), h=b.h+pad*2+titleH+legendH;
     const off=document.createElement('canvas'); off.width=w*sc; off.height=h*sc;
     const c=off.getContext('2d'); c.scale(sc,sc);
     c.fillStyle='#FFFFFF'; c.fillRect(0,0,w,h);
     c.fillStyle='#23282D'; c.font='700 20px Heebo, system-ui, sans-serif'; c.textAlign='right'; c.direction='rtl';
     const d = DOC.data;
     c.fillText(`${docTitle(d.header)}  ${d.header.date}`, w-24, 30);
-    drawScene(c, {ox:pad-b.x0, oy:pad-b.y0+titleH, s:1}, w, h-legendH, {grid:false, bg:'transparent'});
+    drawScene(c, {ox:(w-b.w)/2-b.x0, oy:pad-b.y0+titleH, s:1}, w, h-legendH, {grid:false, bg:'transparent'});
     // מקרא
     c.font='400 12px Heebo, system-ui, sans-serif'; c.fillStyle='#555'; c.textAlign='right';
     c.fillText(legendText(d), w-24, h-8);
